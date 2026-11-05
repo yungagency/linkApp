@@ -71,6 +71,14 @@ export function createSupabaseApi(url: string, key: string): Api {
       if (type) q = q.eq('vitrine.type', type)
       return must(await q) as ItemHit[]
     },
+    async listItemsByCategory(categoryId) {
+      return must(await sb.from('items').select('*, vitrine:vitrines!inner(id,name,slug,type,city,status,category_id)')
+        .eq('vitrine.category_id', categoryId).eq('vitrine.status', 'active')
+        .order('created_at', { ascending: false }).limit(60)) as ItemHit[]
+    },
+    async getCategory(id) {
+      return must(await sb.from('categories').select('*').eq('id', id).maybeSingle()) as Category | null
+    },
     async incrementViews(vitrineId) {
       await sb.rpc('increment_views', { vid: vitrineId })
     },

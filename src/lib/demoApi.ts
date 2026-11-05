@@ -157,6 +157,17 @@ export function createDemoApi(): Api {
       })
       return delay(hits.slice(0, 30))
     },
+    async listItemsByCategory(categoryId) {
+      const hits = db.items.flatMap((i) => {
+        const v = db.vitrines.find((x) => x.id === i.vitrine_id)
+        if (!v || !visible(v) || v.category_id !== categoryId) return []
+        return [{ ...i, vitrine: { id: v.id, name: v.name, slug: v.slug, type: v.type, city: v.city } }]
+      })
+      return delay(hits)
+    },
+    async getCategory(id) {
+      return delay(db.categories.find((c) => c.id === id) ?? null)
+    },
     async incrementViews(vitrineId) {
       const v = db.vitrines.find((x) => x.id === vitrineId)
       if (v) { v.views++; save() }

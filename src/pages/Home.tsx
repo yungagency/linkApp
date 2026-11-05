@@ -56,11 +56,11 @@ export default function Home() {
 
         <div className="section-head">
           <h2>Catégories</h2>
-          <a className="link" href="#/explorer">Voir tout</a>
+          <a className="link" href="#/categories">Voir tout</a>
         </div>
         <div className="cat-grid">
           {(cats.data ?? []).slice(0, 8).map((c) => (
-            <a key={c.id} className="cat" href={`#/explorer?type=${c.type}&cat=${c.id}`}>
+            <a key={c.id} className="cat" href={`#/categorie/${c.id}`}>
               <span className="ic"><Icon name={c.icon} size={22} /></span>{c.name}
             </a>
           ))}

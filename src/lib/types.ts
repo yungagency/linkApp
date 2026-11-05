@@ -95,6 +95,8 @@ export interface Api {
   getVitrineBySlug(slug: string): Promise<Vitrine | null>
   listItems(vitrineId: string): Promise<Item[]>
   searchItems(q: string, type?: VitrineType): Promise<ItemHit[]>
+  listItemsByCategory(categoryId: string): Promise<ItemHit[]>
+  getCategory(id: string): Promise<Category | null>
   incrementViews(vitrineId: string): Promise<void>
   // Espace pro
   myVitrine(): Promise<Vitrine | null>

@@ -8,6 +8,7 @@ import { match, navigate, usePath } from './lib/router'
 import { useSession } from './lib/session'
 import { Account, BecomeSeller, Favorites } from './pages/Account'
 import { Login, Register } from './pages/Auth'
+import { Categories, CategoryPage } from './pages/Categories'
 import Explore from './pages/Explore'
 import Home from './pages/Home'
 import VitrinePage from './pages/VitrinePage'
@@ -40,6 +41,8 @@ export default function App() {
   else if (base === '/') page = <Home />
   else if (base === '/explorer') page = <Explore params={query} />
   else if ((m = match('/v/:slug', base))) { page = <VitrinePage slug={m.slug!} />; nav = false }
+  else if (base === '/categories') page = <Categories />
+  else if ((m = match('/categorie/:id', base))) page = <CategoryPage id={m.id!} />
   else if (base === '/favoris') page = <Favorites />
   else if (base === '/connexion') { page = profile ? <Redirect to={query.next || '/compte'} /> : <Login next={query.next} />; nav = false; narrow = true }
   else if (base === '/inscription') { page = <Register next={query.next} />; nav = false; narrow = true }
