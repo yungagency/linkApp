@@ -3,7 +3,7 @@ import type { VitrineType } from './lib/types'
 export const APP = {
   name: 'LinkApp',
   tagline: 'Vos opportunités, en un seul lieu',
-  defaultCity: 'Yaoundé',
+  defaultCity: 'Bafoussam',
   // Numéro WhatsApp de l'équipe LinkApp pour l'activation Premium (À FOURNIR par Atipik Group)
   supportWhatsapp: '',
 }

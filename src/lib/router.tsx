@@ -9,7 +9,9 @@ export function currentPath(): string {
   return location.hash.replace(/^#/, '') || '/'
 }
 
+let keepScroll = false
 export function navigate(to: string, replace = false) {
+  keepScroll = replace
   const h = '#' + to
   if (replace) history.replaceState(null, '', h)
   else location.hash = to
@@ -19,7 +21,7 @@ export function navigate(to: string, replace = false) {
 export function usePath(): string {
   const [p, setP] = useState(currentPath())
   useEffect(() => {
-    const on = () => { setP(currentPath()); window.scrollTo(0, 0) }
+    const on = () => { setP(currentPath()); if (!keepScroll) window.scrollTo(0, 0); keepScroll = false }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])

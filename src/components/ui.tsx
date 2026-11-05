@@ -4,14 +4,16 @@ import { api } from '../lib/api'
 import { Link, navigate, usePath } from '../lib/router'
 import { getFavs, toggleFav, useSession } from '../lib/session'
 import type { Item, Vitrine, VitrineType } from '../lib/types'
-import { errorMessage, formatPrice, initials, isPremiumActive } from '../lib/utils'
+import { errorMessage, formatPrice, isPremiumActive } from '../lib/utils'
 import { Icon } from './Icon'
 
-export function Logo({ size = 30 }: { size?: number }) {
+export function Logo({ size = 30, tagline = false }: { size?: number; tagline?: boolean }) {
   return (
-    <span className="brand">
+    <span className="brand" aria-label="LinkApp">
       <img src="./logo-mark.svg" alt="" style={{ width: size, height: size }} />
-      <span>Link<b>App</b></span>
+      {tagline
+        ? <span className="brand-stack"><span>Link<b>App</b></span><small>Vos opportunités, en un seul lieu</small></span>
+        : <span>Link<b>App</b></span>}
     </span>
   )
 }
@@ -61,7 +63,11 @@ export function BottomNav() {
 export function Media({ src, type, label, className }: { src?: string | null; type: VitrineType; label: string; className?: string }) {
   const [broken, setBroken] = useState(false)
   if (src && !broken) return <img src={src} alt={label} className={'cover-img ' + (className ?? '')} loading="lazy" onError={() => setBroken(true)} />
-  return <div className={`ph ${type} ${className ?? ''}`} aria-label={label}>{initials(label) || <Icon name={TYPES[type].icon} />}</div>
+  return (
+    <div className={`ph ${type} ${className ?? ''}`} role="img" aria-label={label}>
+      <span className="ph-ic"><Icon name={TYPES[type].icon} stroke={1.6} /></span>
+    </div>
+  )
 }
 
 export function TypeBadge({ type }: { type: VitrineType }) {

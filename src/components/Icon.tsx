@@ -37,6 +37,7 @@ const P: Record<string, string> = {
   grid: 'M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z',
   chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
   users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 10c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 3.5a4 4 0 0 1 0 7.5M22 21c0-2.8-1.6-4.6-4-5.2',
+  share: 'M12 15V3m-4 4 4-4 4 4M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7',
   bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zm4 4h4',
 }
 

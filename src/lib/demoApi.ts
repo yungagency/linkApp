@@ -16,7 +16,7 @@ interface DB {
   requests: PremiumRequest[]
 }
 
-const KEY = 'linkapp-demo-v1'
+const KEY = 'linkapp-demo-v2'
 const now = () => new Date().toISOString()
 
 function seed(): DB {
@@ -40,16 +40,16 @@ function seed(): DB {
   ]
   const v = (n: number, type: VitrineType, name: string, category: string, district: string, description: string, premium = false, views = 0): Vitrine => ({
     id: `v-${n}`, owner_id: owner(n), type, name, slug: slugify(name), description, category_id: cat(category),
-    city: 'Yaoundé', district, phone: '', whatsapp: '', cover_url: null, logo_url: null, status: 'active',
+    city: 'Bafoussam', district, phone: '', whatsapp: '', cover_url: null, logo_url: null, status: 'active',
     is_premium: premium, premium_until: null, views, created_at: now(),
   })
   const vitrines = [
-    v(1, 'agriculture', 'La Ferme Bio', 'Légumes', 'Nkolbisson', 'Produits frais de saison, cultivés sans pesticides.', true, 1240),
-    v(2, 'commerce', 'Tech Mart', 'Électronique', 'Mvog-Mbi', 'Téléphones, accessoires et petit électroménager.', true, 860),
-    v(3, 'service', 'Garage Auto Plus', 'Réparation', 'Biyem-Assi', 'Mécanique, diagnostic et entretien toutes marques.', false, 310),
-    v(4, 'commerce', 'Mode Chic', 'Mode', 'Bastos', 'Prêt-à-porter femme et pagnes.', false, 205),
-    v(5, 'service', 'Beauté & Soins', 'Beauté & coiffure', 'Essos', 'Coiffure, onglerie et soins à domicile.', false, 150),
-    v(6, 'agriculture', 'GIC Les Planteurs', 'Vivres', 'Soa', 'Manioc, macabo, igname en gros et demi-gros.', false, 98),
+    v(1, 'agriculture', 'La Ferme Bio', 'Légumes', 'Tamdja', 'Produits frais de saison, cultivés sans pesticides.', true, 1240),
+    v(2, 'commerce', 'Tech Mart', 'Électronique', 'Marché A', 'Téléphones, accessoires et petit électroménager.', true, 860),
+    v(3, 'service', 'Garage Auto Plus', 'Réparation', 'Djeleng', 'Mécanique, diagnostic et entretien toutes marques.', false, 310),
+    v(4, 'commerce', 'Mode Chic', 'Mode', 'Kamkop', 'Prêt-à-porter femme et pagnes.', false, 205),
+    v(5, 'service', 'Beauté & Soins', 'Beauté & coiffure', 'Banengo', 'Coiffure, onglerie et soins à domicile.', false, 150),
+    v(6, 'agriculture', 'GIC Les Planteurs', 'Vivres', 'Kouogouo', 'Manioc, macabo, igname en gros et demi-gros.', false, 98),
   ]
   const it = (vid: string, title: string, price: number | null, unit: string, description = '', available = true): Item => ({
     id: uid(), vitrine_id: vid, title, price, unit, description, image_url: null, available, created_at: now(),

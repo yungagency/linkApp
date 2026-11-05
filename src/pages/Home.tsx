@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <>
       <header className="topbar">
-        <div className="grow"><Logo /></div>
+        <div className="grow"><Logo tagline /></div>
         <InstallButton />
       </header>
 
@@ -38,6 +38,7 @@ export default function Home() {
 
         <section className="hero" style={{ marginTop: 16 }}>
           <img src="./logo-mark.svg" alt="" className="hero-deco" />
+          <p className="eyebrow">Confiance · Proximité · Croissance</p>
           <h2>Soutenez les entrepreneurs locaux</h2>
           <p>Boutiques, produits agricoles et services près de chez vous, en contact direct sur WhatsApp.</p>
           <a className="btn" href="#/explorer">Découvrir</a>

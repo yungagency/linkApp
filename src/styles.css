@@ -1,20 +1,22 @@
 :root {
-  --blue-50: #EEF4FF; --blue-100: #DCE7FF; --blue-500: #2F6BFF; --blue-600: #1D4ED8; --blue-700: #1E40AF;
-  --ink: #0B1220; --ink-2: #334155; --muted: #64748B; --line: #E5EAF2;
-  --bg: #F5F7FB; --card: #FFFFFF;
+  /* Charte LinkApp : bleu principal #3B82F6 · bleu nuit #0B1220 · gris clair #E5E7EB · blanc */
+  --blue-50: #EFF5FF; --blue-100: #DBE8FE; --blue-500: #3B82F6; --blue-600: #2563EB; --blue-700: #1D4ED8;
+  --night: #0B1220; --night-2: #131C2E;
+  --ink: #0B1220; --ink-2: #334155; --muted: #64748B; --line: #E5E7EB;
+  --bg: #F6F7F9; --card: #FFFFFF;
   --green: #15803D; --green-bg: #E8F7EE; --amber: #B45309; --amber-bg: #FEF3C7; --red: #B91C1C; --red-bg: #FDECEC;
   --gold: #C9A227;
   --radius: 16px; --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 18px rgba(15, 23, 42, .06);
-  --nav-h: 68px;
-  --font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --shadow: 0 1px 0 rgba(11, 18, 32, .03), 0 8px 24px -12px rgba(11, 18, 32, .14);
+  --nav-h: 64px;
+  --font: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font); color: var(--ink); background: #E9EEF6;
-  -webkit-font-smoothing: antialiased; line-height: 1.45; font-size: 15px;
+  -webkit-font-smoothing: antialiased; line-height: 1.5; font-size: 14.5px;
 }
 img { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
@@ -286,3 +288,82 @@ tr:last-child td { border-bottom: 0; }
   .shell:not(.wide) { margin-top: 0; }
 }
 .gold { color: var(--gold); }
+
+/* =====================================================================
+   Finitions « premium » (charte LinkApp)
+   ===================================================================== */
+h1, h2, h3 { letter-spacing: -.015em; }
+h1 { font-weight: 700; } h2 { font-weight: 650; } h3 { font-weight: 600; }
+.card { border: 1px solid rgba(229, 231, 235, .8); }
+.btn { font-weight: 600; letter-spacing: .005em; box-shadow: 0 6px 16px -8px rgba(37, 99, 235, .6); }
+.btn.ghost, .btn.soft, .btn.danger { box-shadow: none; }
+.icon-btn { border: 1px solid var(--line); box-shadow: none; }
+
+/* Logo + signature */
+.brand { font-weight: 700; font-size: 20px; letter-spacing: -.03em; }
+.brand span b { color: var(--blue-500); font-weight: 700; }
+.brand-stack { display: flex; flex-direction: column; line-height: 1.05; }
+.brand-stack small { font-size: 7.5px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-top: 3px; }
+.on-dark .brand span, .on-dark .brand-stack > span { color: #fff; }
+.on-dark .brand-stack small { color: #94A3B8; }
+
+/* Bandeau d'accueil bleu nuit, comme la charte */
+.hero {
+  background:
+    radial-gradient(90% 120% at 110% -10%, rgba(59, 130, 246, .55) 0%, rgba(59, 130, 246, 0) 55%),
+    radial-gradient(60% 80% at -10% 120%, rgba(111, 216, 255, .18) 0%, rgba(111, 216, 255, 0) 60%),
+    linear-gradient(160deg, #131C2E 0%, #0B1220 70%);
+  border: 1px solid rgba(255, 255, 255, .06);
+  padding: 22px 20px;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 22px 22px; mask-image: linear-gradient(90deg, transparent, #000 70%);
+}
+.hero > * { position: relative; }
+.hero h2 { font-weight: 700; font-size: 22px; }
+.hero .eyebrow { font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #93C5FD; font-weight: 600; margin-bottom: 8px; }
+.hero .btn { background: var(--blue-500); color: #fff; box-shadow: 0 8px 22px -8px rgba(59, 130, 246, .9); }
+.hero .btn:hover { background: var(--blue-600); }
+.hero-deco { position: absolute; right: -8px; bottom: -18px; width: 132px; opacity: .9; filter: drop-shadow(0 18px 30px rgba(59,130,246,.45)); }
+.hero p { max-width: 15.5em; }
+
+/* Navigation du bas flottante */
+.bottom-nav {
+  bottom: calc(10px + env(safe-area-inset-bottom)); width: calc(100% - 24px); max-width: 496px;
+  height: var(--nav-h); padding-bottom: 0; border: 1px solid rgba(255,255,255,.06); border-radius: 22px;
+  background: rgba(11, 18, 32, .94); backdrop-filter: blur(14px); box-shadow: 0 18px 40px -16px rgba(11, 18, 32, .55);
+}
+.bottom-nav a { color: #8B95A7; font-weight: 500; }
+.bottom-nav a.on { color: #fff; }
+.bottom-nav a.on svg { color: var(--blue-500); }
+.bottom-nav .fab { margin-top: 0; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #60A5FA, #2563EB); }
+.shell { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 28px); }
+.toast { bottom: calc(var(--nav-h) + 26px + env(safe-area-inset-bottom)); }
+
+/* Visuels par défaut (quand il n'y a pas encore de photo) */
+.ph { position: relative; overflow: hidden; font-size: 0; }
+.ph.commerce, .ph.agriculture, .ph.service { background: linear-gradient(150deg, #1A2740 0%, #0B1220 100%); }
+.ph::before { content: ''; position: absolute; inset: 0; opacity: .9; }
+.ph.commerce::before { background: radial-gradient(70% 70% at 80% 10%, rgba(59,130,246,.55), transparent 70%); }
+.ph.agriculture::before { background: radial-gradient(70% 70% at 80% 10%, rgba(34,197,94,.45), transparent 70%); }
+.ph.service::before { background: radial-gradient(70% 70% at 80% 10%, rgba(249,115,22,.45), transparent 70%); }
+.ph .ph-ic { position: relative; width: 38%; max-width: 54px; min-width: 22px; aspect-ratio: 1; display: grid; place-items: center; border-radius: 28%; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #fff; }
+.ph .ph-ic svg { width: 55%; height: 55%; }
+.ph .ph-txt { position: absolute; left: 10px; bottom: 8px; right: 10px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,.75); letter-spacing: .02em; }
+
+/* Pastilles de type, couleurs charte */
+.t-commerce { background: #EFF5FF; color: #2563EB; }
+
+/* Carte abonnement */
+.premium-card { background: radial-gradient(90% 140% at 100% 0%, rgba(59,130,246,.6), transparent 60%), linear-gradient(160deg, #131C2E, #0B1220); border: 1px solid rgba(255,255,255,.06); }
+.premium-card.free { background: linear-gradient(160deg, #1E293B, #0B1220); }
+.premium-card .btn { background: var(--blue-500); color: #fff; }
+.badge.premium { background: linear-gradient(135deg, #FFF6D6, #FDE7A6); color: #7A5B00; }
+
+.demo-banner { font-size: 11px; padding: 5px 12px; letter-spacing: .01em; }
+.admin-side { background: var(--night); }
+.price { color: var(--blue-600); font-weight: 700; }
+.chip.on { background: var(--night); border-color: var(--night); }
+.hero .eyebrow { max-width: none; opacity: 1; }

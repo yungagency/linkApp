@@ -12,7 +12,7 @@ export function uid(): string {
 
 export function formatPrice(price: number | null, unit?: string): string {
   if (price == null || Number.isNaN(price)) return 'Prix sur demande'
-  const n = new Intl.NumberFormat('fr-FR').format(price) + ' FCFA'
+  const n = Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F') + ' FCFA'
   return unit ? `${n} / ${unit.replace(/^(le |la |l')/, '')}` : n
 }
 
@@ -31,7 +31,7 @@ export function waLink(phone: string, text: string): string {
 }
 
 export function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('')
+  return name.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('')
 }
 
 export function isPremiumActive(v: { is_premium: boolean; premium_until: string | null }): boolean {

@@ -41,7 +41,8 @@ create table if not exists public.categories (
   type text not null check (type in ('commerce','agriculture','service')),
   name text not null,
   icon text not null default 'tag',
-  position int not null default 0
+  position int not null default 0,
+  unique (type, name)
 );
 
 -- ---------- Vitrines ----------
@@ -120,6 +121,26 @@ create table if not exists public.items (
   created_at timestamptz not null default now()
 );
 create index if not exists items_vitrine_idx on public.items(vitrine_id);
+
+-- Plan gratuit : 10 articles maximum (contrôlé aussi côté serveur, pas seulement dans l'app)
+create or replace function public.enforce_item_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v public.vitrines; n int;
+begin
+  select * into v from public.vitrines where id = new.vitrine_id;
+  if public.is_admin() or (v.is_premium and (v.premium_until is null or v.premium_until >= current_date)) then
+    return new;
+  end if;
+  select count(*) into n from public.items where vitrine_id = new.vitrine_id;
+  if n >= 10 then
+    raise exception 'Limite du plan gratuit atteinte (10 articles). Passez Premium pour en ajouter plus.';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists items_limit on public.items;
+create trigger items_limit before insert on public.items
+  for each row execute function public.enforce_item_limit();
 
 -- ---------- Demandes d'abonnement Premium (activation manuelle en V1) ----------
 create table if not exists public.premium_requests (
@@ -225,7 +246,7 @@ insert into public.categories (type, name, icon, position) values
   ('agriculture','Élevage','egg',4), ('agriculture','Semences & intrants','seed',5),
   ('service','Réparation','tool',1), ('service','Transport','truck',2), ('service','Beauté & coiffure','sparkle',3),
   ('service','Événementiel','star',4), ('service','Bâtiment','home',5), ('service','Formation','book',6)
-on conflict do nothing;
+on conflict (type, name) do nothing;
 
 -- =====================================================================
 -- APRÈS la création de votre propre compte dans l'app, passez-le admin :

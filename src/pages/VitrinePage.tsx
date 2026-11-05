@@ -39,7 +39,7 @@ export default function VitrinePage({ slug }: { slug: string }) {
           <Icon name="back" />
         </button>
         <div className="row" style={{ position: 'absolute', right: 16, top: 'calc(12px + env(safe-area-inset-top))' }}>
-          <button className="icon-btn" aria-label="Partager" onClick={share}><Icon name="chat" /></button>
+          <button className="icon-btn" aria-label="Partager" onClick={share}><Icon name="share" /></button>
           <button className="icon-btn" aria-label="Favori" style={{ color: fav ? '#E11D48' : undefined }} onClick={() => favs.toggle(s.id)}>
             <Icon name="heart" filled={fav} />
           </button>

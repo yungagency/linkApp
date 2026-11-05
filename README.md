@@ -31,17 +31,26 @@ npm run dev
 Sans fichier `.env.local`, l'app tourne en **mode démo** : données d'exemple stockées dans le navigateur.
 Compte admin démo : `admin@demo.linkapp` / `admin123`.
 
-## Brancher Supabase
+## Brancher Supabase (pas à pas)
 
-1. Créer un projet sur supabase.com.
-2. *SQL Editor* → coller `supabase/migrations/0001_init.sql` → *Run* (tables, sécurité, stockage des photos, catégories).
-3. Copier `.env.example` en `.env.local` et remplir `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` (*Project Settings → API*). Mettre les mêmes variables dans Vercel.
-4. Créer son compte dans l'app, puis le passer admin (requête en bas du fichier SQL).
-5. Pour tester sans confirmation d'email : *Authentication → Providers → Email* → désactiver « Confirm email ».
+1. **Créer le projet** : supabase.com → *New project* → nom `linkapp`, région la plus proche (Europe, ex. Frankfurt), mot de passe de base de données à conserver.
+2. **Créer les tables** : menu *SQL Editor* → *New query* → coller tout le fichier `supabase/migrations/0001_init.sql` → *Run*. Résultat attendu : « Success. No rows returned ».
+3. **Récupérer les 2 clés** : *Project Settings → API* (ou *API Keys*)
+   - **Project URL** → `VITE_SUPABASE_URL` (forme `https://xxxx.supabase.co`)
+   - **Publishable key** (`sb_publishable_…`) ou, sur les anciens projets, **anon public** → `VITE_SUPABASE_ANON_KEY`
+   - ⚠️ Ne jamais utiliser la clé **secret / service_role** dans l'app : elle donne tous les droits.
+4. **En local** : copier `.env.example` en `.env.local`, coller les 2 valeurs, relancer `npm run dev`. Le bandeau « Mode démo » disparaît.
+5. **Sur Vercel** : *Project → Settings → Environment Variables* → ajouter les 2 variables (Production + Preview) → *Deployments → Redeploy*.
+6. **Adresses autorisées** : *Authentication → URL Configuration* → *Site URL* = l'adresse Vercel (ex. `https://linkapp.vercel.app`), et l'ajouter dans *Redirect URLs*. Sans ça, le lien de confirmation par email renvoie vers localhost.
+7. **Confirmation par email** : *Authentication → Sign In / Providers → Email* → « Confirm email ». À désactiver pendant les tests, à réactiver avant le lancement.
+8. **Devenir admin** : s'inscrire dans l'app, puis dans *SQL Editor* :
+   `update public.profiles set role = 'admin' where id = (select id from auth.users where email = 'VOTRE_EMAIL');`
+   Se déconnecter / reconnecter : le menu *Administration* apparaît dans *Compte*.
 
 ## Déploiement
 
 - **Web / PWA** : importer le dépôt dans Vercel (framework Vite, sortie `dist`).
+- **Première fois** : `npm run cap:add` (crée les projets Android et iOS).
 - **Android** : `npm run cap:android` (Android Studio requis).
 - **iOS** : `npm run cap:ios` (Mac + Xcode requis). Apple refuse les simples sites emballés : prévoir en V2 les notifications et l'appareil photo natifs avant soumission.
 
@@ -49,6 +58,6 @@ Compte admin démo : `admin@demo.linkapp` / `admin123`.
 
 - Prix et durée des formules Premium (`PLANS` dans `src/config.ts`, actuellement « tarif communiqué par l'équipe »).
 - Numéro WhatsApp de l'équipe pour les demandes Premium (`APP.supportWhatsapp`).
-- Limite du plan gratuit (10 articles, contrôlée côté app seulement pour l'instant).
+- Limite du plan gratuit (10 articles, contrôlée dans l'app et dans la base).
 - Modération : les vitrines sont publiées directement, l'admin peut les suspendre.
 - Identifiant d'application stores : `com.atipikgroup.linkapp` (dans `capacitor.config.ts`).

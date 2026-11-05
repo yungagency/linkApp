@@ -1,16 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
   <defs>
-    <linearGradient id="v" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4C8DFF"/><stop offset="1" stop-color="#1D4ED8"/>
+    <linearGradient id="lv" x1="0" y1="0" x2=".35" y2="1">
+      <stop offset="0" stop-color="#6FD8FF"/><stop offset=".45" stop-color="#3B82F6"/><stop offset="1" stop-color="#1D4ED8"/>
     </linearGradient>
-    <linearGradient id="h" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2563EB"/><stop offset="1" stop-color="#1E3A8A"/>
+    <linearGradient id="lh" x1="0" y1="0" x2="1" y2=".3">
+      <stop offset="0" stop-color="#2563EB"/><stop offset=".6" stop-color="#3B82F6"/><stop offset="1" stop-color="#60A5FA"/>
     </linearGradient>
-    <linearGradient id="f" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#0B1B4D" stop-opacity=".55"/><stop offset="1" stop-color="#0B1B4D" stop-opacity="0"/>
+    <linearGradient id="lc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E40AF"/><stop offset="1" stop-color="#0B1E5B"/>
+    </linearGradient>
+    <linearGradient id="ls" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#071233" stop-opacity=".55"/><stop offset="1" stop-color="#071233" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <path d="M34 30 Q34 16 48 12 L56 10 Q60 9 60 14 L60 70 L34 84 Z" fill="url(#v)"/>
-  <path d="M34 84 L60 70 L86 70 Q98 70 98 82 L98 96 Q98 108 86 108 L50 108 Q34 108 34 92 Z" fill="url(#h)"/>
-  <path d="M34 84 L60 70 L74 70 L52 86 Z" fill="url(#f)"/>
+  <!-- volute sous le pied (pli du ruban) -->
+  <path d="M80 72 Q102 72 102 90 L102 92 Q102 78 86 78 L72 78 Z" fill="url(#lc)"/>
+  <!-- pied -->
+  <path d="M34 94 L58 72 L84 72 Q102 72 102 90 Q102 108 84 108 L50 108 Q34 108 34 94 Z" fill="url(#lh)"/>
+  <!-- ombre du pli -->
+  <path d="M34 94 L58 72 L76 72 L50 92 Z" fill="url(#ls)"/>
+  <!-- tige -->
+  <path d="M34 24 Q34 10 48 10 L50 10 Q58 10 58 18 L58 72 L34 94 Z" fill="url(#lv)"/>
 </svg>

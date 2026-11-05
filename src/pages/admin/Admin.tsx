@@ -107,7 +107,7 @@ function Vitrines() {
                   <td><span className={'badge ' + (v.status === 'active' ? 'ok' : v.status === 'pending' ? 'warn' : 'off')}>
                     {v.status === 'active' ? 'Active' : v.status === 'pending' ? 'En attente' : 'Suspendue'}</span></td>
                   <td>{isPremiumActive(v)
-                    ? <span className="badge premium">Jusqu'au {v.premium_until ? new Date(v.premium_until).toLocaleDateString('fr-FR') : '∞'}</span>
+                    ? <span className="badge premium">{v.premium_until ? `Jusqu'au ${new Date(v.premium_until).toLocaleDateString('fr-FR')}` : 'Sans limite'}</span>
                     : <span className="muted small">—</span>}</td>
                   <td>
                     <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>

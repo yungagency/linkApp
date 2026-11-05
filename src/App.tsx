@@ -54,7 +54,7 @@ export default function App() {
   return (
     <div className={'shell ' + (wide ? 'wide' : '')} style={nav ? undefined : { paddingBottom: 24 }}>
       {api.mode === 'demo' && (
-        <div className="demo-banner"><b>Mode démo</b> — données enregistrées sur cet appareil uniquement</div>
+        <div className="demo-banner"><b>Mode démo</b> · données sur cet appareil uniquement</div>
       )}
       {page}
       {nav && <BottomNav />}

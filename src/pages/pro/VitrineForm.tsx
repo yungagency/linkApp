@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { PhotoPicker, TopBar, toast, useLoad } from '../../components/ui'
-import { TYPES } from '../../config'
+import { APP, TYPES } from '../../config'
 import { api } from '../../lib/api'
 import { navigate } from '../../lib/router'
 import { useSession } from '../../lib/session'
@@ -20,7 +20,7 @@ export default function VitrineForm() {
   const editing = !!vitrine
   const [step, setStep] = useState<1 | 2>(editing ? 2 : 1)
   const [f, setF] = useState<Partial<Vitrine> & { type: VitrineType; name: string }>(
-    vitrine ?? { type: 'commerce', name: '', city: 'Yaoundé', district: '', description: '', phone: profile?.phone ?? '', whatsapp: profile?.phone ?? '', category_id: null, cover_url: null, logo_url: null },
+    vitrine ?? { type: 'commerce', name: '', city: APP.defaultCity, district: '', description: '', phone: profile?.phone ?? '', whatsapp: profile?.phone ?? '', category_id: null, cover_url: null, logo_url: null },
   )
   const cats = useLoad(() => api.listCategories(f.type), [f.type])
   const [err, setErr] = useState('')
