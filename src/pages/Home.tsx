@@ -37,7 +37,7 @@ export default function Home() {
         </form>
 
         <section className="hero" style={{ marginTop: 16 }}>
-          <img src="./logo-mark.svg" alt="" className="hero-deco" />
+          <img src="./logo-mark.png" alt="" className="hero-deco" />
           <p className="eyebrow">Confiance · Proximité · Croissance</p>
           <h2>Soutenez les entrepreneurs locaux</h2>
           <p>Boutiques, produits agricoles et services près de chez vous, en contact direct sur WhatsApp.</p>

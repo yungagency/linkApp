@@ -1,7 +1,7 @@
 // Service worker LinkApp : l'application s'ouvre même avec une connexion faible.
 // Stratégie : réseau d'abord pour les pages, cache en secours ; cache d'abord pour les fichiers statiques.
-const CACHE = 'linkapp-v1'
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './logo-mark.svg']
+const CACHE = 'linkapp-v2'
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './logo-mark.png']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()))
@@ -20,6 +20,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url)
   // Jamais de cache pour l'API Supabase (données à jour, sessions).
   if (url.hostname.endsWith('supabase.co')) return
+  // Test de connexion : toujours le réseau
+  if (url.searchParams.has('ping')) return
 
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).catch(() => caches.match('./index.html')))

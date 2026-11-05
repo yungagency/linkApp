@@ -6,11 +6,12 @@ import { getFavs, toggleFav, useSession } from '../lib/session'
 import type { Item, Vitrine, VitrineType } from '../lib/types'
 import { errorMessage, formatPrice, isPremiumActive } from '../lib/utils'
 import { Icon } from './Icon'
+import { NET_EVENTS, isNetworkError, reportNetworkError } from './Network'
 
 export function Logo({ size = 30, tagline = false }: { size?: number; tagline?: boolean }) {
   return (
     <span className="brand" aria-label="LinkApp">
-      <img src="./logo-mark.svg" alt="" style={{ width: size, height: size }} />
+      <img src="./logo-mark.png" alt="" style={{ width: size, height: size }} />
       {tagline
         ? <span className="brand-stack"><span>Link<b>App</b></span><small>Vos opportunités, en un seul lieu</small></span>
         : <span>Link<b>App</b></span>}
@@ -200,11 +201,25 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[]) {
   const [tick, setTick] = useState(0)
   useEffect(() => {
     let alive = true
+    let slow = false
     setLoading(true); setError('')
-    fn().then((d) => { if (alive) setData(d) }).catch((e) => { if (alive) setError(errorMessage(e)) })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
+    // Au-delà de 8 s, on prévient l'utilisateur que la connexion est lente
+    const timer = setTimeout(() => { slow = true; window.dispatchEvent(new Event(NET_EVENTS.slow)) }, 8000)
+    const end = () => { clearTimeout(timer); if (slow) { slow = false; window.dispatchEvent(new Event(NET_EVENTS.slowDone)) } }
+    fn().then((d) => { if (alive) setData(d) })
+      .catch((e) => {
+        if (isNetworkError(e)) reportNetworkError()
+        if (alive) setError(errorMessage(e))
+      })
+      .finally(() => { end(); if (alive) setLoading(false) })
+    return () => { alive = false; end() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick])
+  // Quand la connexion revient, on recharge automatiquement
+  useEffect(() => {
+    const on = () => setTick((t) => t + 1)
+    window.addEventListener(NET_EVENTS.retry, on)
+    return () => window.removeEventListener(NET_EVENTS.retry, on)
+  }, [])
   return { data, error, loading, reload: () => setTick((t) => t + 1) }
 }

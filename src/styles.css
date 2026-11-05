@@ -367,3 +367,134 @@ h1 { font-weight: 700; } h2 { font-weight: 650; } h3 { font-weight: 600; }
 .price { color: var(--blue-600); font-weight: 700; }
 .chip.on { background: var(--night); border-color: var(--night); }
 .hero .eyebrow { max-width: none; opacity: 1; }
+
+/* =====================================================================
+   Logo officiel : « App » en dégradé comme le fichier source
+   ===================================================================== */
+.brand span b, .splash-word .app {
+  background: linear-gradient(180deg, #1E8BFF 0%, #0A55F5 55%, #0A2FE0 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand img { object-fit: contain; }
+
+/* =====================================================================
+   ANIMATION 1 — Ouverture de l'application
+   ===================================================================== */
+.splash {
+  position: fixed; inset: 0; z-index: 9998; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 40%, #142139 0%, #0B1220 60%, #060A13 100%);
+  transition: opacity .55s ease, transform .55s cubic-bezier(.4, 0, .2, 1), filter .55s ease;
+}
+.splash.out { opacity: 0; transform: scale(1.06); filter: blur(6px); pointer-events: none; }
+.splash-glow {
+  position: absolute; width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(30, 123, 255, .35), rgba(0, 229, 255, .08) 55%, transparent 70%);
+  animation: sp-glow 2.4s ease-out both;
+}
+.splash-center { position: relative; display: flex; flex-direction: column; align-items: center; }
+.splash-mark { position: relative; width: 112px; height: 112px; animation: sp-mark 1s cubic-bezier(.2, .9, .25, 1.15) both; }
+.splash-mark img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 20px 40px rgba(30, 123, 255, .55)); position: relative; }
+.splash-shine {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .75) 50%, transparent 65%);
+  background-size: 250% 100%; background-position: 150% 0;
+  animation: sp-shine 1.1s .55s ease-in-out both;
+}
+.splash-ring {
+  position: absolute; left: 50%; top: 50%; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%;
+  border: 1.5px solid rgba(96, 165, 250, .55); animation: sp-ring 1.6s .25s ease-out both;
+}
+.splash-ring.r2 { animation-delay: .5s; border-color: rgba(0, 229, 255, .35); }
+.splash-word { display: flex; margin-top: 22px; font-size: 38px; font-weight: 700; letter-spacing: -.03em; color: #fff; line-height: 1; }
+.splash-word span { display: inline-block; animation: sp-letter .6s cubic-bezier(.2, .8, .2, 1) both; }
+.splash-tag {
+  margin-top: 12px; font-size: 10px; font-weight: 500; text-transform: uppercase; color: #94A3B8;
+  animation: sp-tag 1s 1.2s ease-out both;
+}
+.splash-bar { position: absolute; bottom: calc(48px + env(safe-area-inset-bottom)); width: 120px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; }
+.splash-bar span { display: block; height: 100%; width: 40%; border-radius: 3px; background: linear-gradient(90deg, #00E5FF, #1E6BFF); animation: sp-bar 1.1s .3s ease-in-out infinite; }
+
+@keyframes sp-glow { 0% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; } 100% { opacity: .85; transform: scale(1); } }
+@keyframes sp-mark { 0% { opacity: 0; transform: translateY(18px) scale(.55) rotate(-8deg); filter: blur(10px); } 100% { opacity: 1; transform: none; filter: none; } }
+@keyframes sp-shine { to { background-position: -50% 0; } }
+@keyframes sp-ring { 0% { opacity: 0; transform: scale(.7); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(2.6); } }
+@keyframes sp-letter { 0% { opacity: 0; transform: translateY(16px); filter: blur(4px); } 100% { opacity: 1; transform: none; filter: none; } }
+@keyframes sp-tag { 0% { opacity: 0; letter-spacing: .6em; } 100% { opacity: 1; letter-spacing: .28em; } }
+@keyframes sp-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+
+/* =====================================================================
+   ANIMATION 2 — Connexion perdue / lente
+   ===================================================================== */
+.net-screen {
+  position: fixed; inset: 0; z-index: 9990; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 28px; text-align: center; color: #fff;
+  background: rgba(6, 10, 19, .86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  animation: net-in .45s ease-out both;
+}
+.net-screen h2 { color: #fff; font-size: 21px; margin-top: 30px; }
+.net-screen p { color: #A3AFC2; font-size: 14px; max-width: 18rem; margin: 8px 0 22px; }
+.net-radar { position: relative; width: 190px; height: 190px; display: grid; place-items: center; }
+.net-radar .wave {
+  position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(251, 146, 60, .55);
+  animation: net-wave 2.4s ease-out infinite;
+}
+.net-radar .wave.w2 { animation-delay: .8s; }
+.net-radar .wave.w3 { animation-delay: 1.6s; }
+.net-radar .orbit { position: absolute; inset: 22px; border-radius: 50%; border: 1px dashed rgba(148, 163, 184, .3); animation: net-spin 3.2s linear infinite; }
+.net-radar .sat {
+  position: absolute; top: -5px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%;
+  background: #FB923C; box-shadow: 0 0 14px 3px rgba(251, 146, 60, .7);
+}
+.net-core {
+  position: relative; width: 86px; height: 86px; border-radius: 26px; display: grid; place-items: center;
+  background: linear-gradient(160deg, #1A2740, #0B1220); border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, .6); animation: net-breathe 2.4s ease-in-out infinite;
+}
+.net-core img { width: 58px; height: 58px; object-fit: contain; filter: grayscale(.65) brightness(.9); transition: filter .5s; }
+.net-dots { display: flex; gap: 6px; margin-top: 18px; }
+.net-dots i { width: 6px; height: 6px; border-radius: 50%; background: #64748B; animation: net-dot 1.2s ease-in-out infinite; }
+.net-dots i:nth-child(2) { animation-delay: .15s; } .net-dots i:nth-child(3) { animation-delay: .3s; }
+.net-check {
+  position: absolute; right: -8px; bottom: -8px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: #22C55E; color: #fff; box-shadow: 0 0 0 4px #0B1220; animation: net-pop .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+/* Connexion revenue : tout passe au vert et la marque reprend ses couleurs */
+.net-screen.ok .wave { border-color: rgba(34, 197, 94, .6); animation-duration: 1.2s; }
+.net-screen.ok .sat { background: #22C55E; box-shadow: 0 0 14px 3px rgba(34, 197, 94, .7); }
+.net-screen.ok .net-core img { filter: none; }
+.net-screen.ok .net-core { animation: none; }
+
+/* Connexion lente : pastille discrète */
+.net-pill {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); z-index: 9980;
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 10px; border-radius: 16px; color: #fff; font-size: 13px;
+  background: rgba(11, 18, 32, .95); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 16px 36px -14px rgba(0,0,0,.6);
+  animation: net-pill-in .4s cubic-bezier(.2, .9, .3, 1.2) both; width: max-content; max-width: calc(100% - 32px);
+}
+.net-pill .tiny { color: #94A3B8; }
+.net-pill-orbit, .bl-orbit { position: relative; width: 38px; height: 38px; display: grid; place-items: center; flex-shrink: 0; }
+.net-pill-orbit::before, .bl-orbit::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 65%, #00E5FF 85%, #1E6BFF 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: net-spin .9s linear infinite;
+}
+.net-pill-orbit img { width: 22px; height: 22px; object-fit: contain; }
+
+/* Loader de marque (chargement de page) */
+.brand-loader { min-height: 60dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.bl-orbit { width: 64px; height: 64px; }
+.bl-orbit img { width: 36px; height: 36px; object-fit: contain; animation: net-breathe 1.8s ease-in-out infinite; }
+
+@keyframes net-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes net-wave { 0% { transform: scale(.42); opacity: .9; } 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes net-spin { to { transform: rotate(360deg); } }
+@keyframes net-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes net-dot { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
+@keyframes net-pop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes net-pill-in { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash *, .net-screen *, .net-pill *, .brand-loader * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

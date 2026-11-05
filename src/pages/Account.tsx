@@ -114,7 +114,7 @@ export function BecomeSeller() {
       <TopBar back="/compte" title="Devenir vendeur" />
       <div className="page stack">
         <div className="hero">
-          <img src="./logo-mark.svg" alt="" className="hero-deco" />
+          <img src="./logo-mark.png" alt="" className="hero-deco" />
           <h2>Vendez près de chez vous</h2>
           <p>Commerçants, agriculteurs, prestataires : LinkApp vous rend visible auprès des clients de votre ville.</p>
         </div>

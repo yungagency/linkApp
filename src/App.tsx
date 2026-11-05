@@ -1,5 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
-import { BottomNav, Skeleton, ToastHost } from './components/ui'
+import { BrandLoader, NetworkStatus } from './components/Network'
+import { Splash } from './components/Splash'
+import { BottomNav, ToastHost } from './components/ui'
 import { api } from './lib/api'
 import { match, navigate, usePath } from './lib/router'
 import { useSession } from './lib/session'
@@ -31,7 +33,7 @@ export default function App() {
   let wide = false
   let m: Record<string, string> | null
 
-  if (needsAuth && loading) page = <div className="page stack"><Skeleton h={60} /><Skeleton h={160} /></div>
+  if (needsAuth && loading) page = <BrandLoader />
   else if (needsAuth && !profile) page = <Redirect to={base.startsWith('/pro') ? '/devenir-vendeur' : '/connexion?next=' + encodeURIComponent(base)} />
   else if (base === '/') page = <Home />
   else if (base === '/explorer') page = <Explore params={query} />
@@ -59,6 +61,8 @@ export default function App() {
       {page}
       {nav && <BottomNav />}
       <ToastHost />
+      <NetworkStatus />
+      <Splash />
     </div>
   )
 }
