@@ -39,10 +39,8 @@ export default function Home() {
         <section className="hero" style={{ marginTop: 16 }}>
           <img src="./logo-mark.svg" alt="" className="hero-deco" />
           <h2>Soutenez les entrepreneurs locaux</h2>
-          <p>Boutiques, cultures et services près de chez vous, en contact direct sur WhatsApp.</p>
-          <a className="btn" href={vitrine ? '#/pro' : '#/pro/vitrine'}>
-            {vitrine ? 'Gérer ma vitrine' : 'Créer ma vitrine gratuite'}
-          </a>
+          <p>Boutiques, produits agricoles et services près de chez vous, en contact direct sur WhatsApp.</p>
+          <a className="btn" href="#/explorer">Découvrir</a>
         </section>
 
         <div className="section-head"><h2>Je cherche</h2></div>
@@ -87,9 +85,17 @@ export default function Home() {
           {featured.error && <p className="alert err">{featured.error}</p>}
           {recent.map((v) => <VitrineRow key={v.id} v={v} />)}
           {!featured.loading && !featured.error && list.length === 0 && (
-            <p className="alert info">Aucune vitrine pour le moment. Soyez le premier à créer la vôtre !</p>
+            <p className="alert info">Aucune vitrine pour le moment.</p>
           )}
         </div>
+
+        {!vitrine && (
+          <a className="card pad row" href="#/devenir-vendeur" style={{ marginTop: 22 }}>
+            <span className="type-tile" style={{ padding: 0, boxShadow: 'none' }}><span className="ic t-commerce"><Icon name="store" size={20} /></span></span>
+            <span className="grow"><b>Vous vendez ?</b><br /><span className="small muted">Ouvrez votre vitrine gratuitement</span></span>
+            <Icon name="chevron" className="muted" />
+          </a>
+        )}
       </div>
     </>
   )

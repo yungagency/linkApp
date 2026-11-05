@@ -3,7 +3,7 @@ import { BottomNav, Skeleton, ToastHost } from './components/ui'
 import { api } from './lib/api'
 import { match, navigate, usePath } from './lib/router'
 import { useSession } from './lib/session'
-import { Account, Favorites } from './pages/Account'
+import { Account, BecomeSeller, Favorites } from './pages/Account'
 import { Login, Register } from './pages/Auth'
 import Explore from './pages/Explore'
 import Home from './pages/Home'
@@ -24,7 +24,7 @@ export default function App() {
   const { profile, vitrine, loading } = useSession()
   const base = path.split('?')[0]!
   const query = match(base, path) ?? {}
-  const needsAuth = base === '/compte' || base.startsWith('/pro') || base === '/admin'
+  const needsAuth = base.startsWith('/pro') || base === '/admin'
 
   let page: ReactNode
   let nav = true
@@ -32,7 +32,7 @@ export default function App() {
   let m: Record<string, string> | null
 
   if (needsAuth && loading) page = <div className="page stack"><Skeleton h={60} /><Skeleton h={160} /></div>
-  else if (needsAuth && !profile) page = <Redirect to={'/connexion?next=' + encodeURIComponent(base)} />
+  else if (needsAuth && !profile) page = <Redirect to={base.startsWith('/pro') ? '/devenir-vendeur' : '/connexion?next=' + encodeURIComponent(base)} />
   else if (base === '/') page = <Home />
   else if (base === '/explorer') page = <Explore params={query} />
   else if ((m = match('/v/:slug', base))) { page = <VitrinePage slug={m.slug!} />; nav = false }
@@ -40,6 +40,7 @@ export default function App() {
   else if (base === '/connexion') { page = profile ? <Redirect to={query.next || '/compte'} /> : <Login next={query.next} />; nav = false }
   else if (base === '/inscription') { page = <Register next={query.next} />; nav = false }
   else if (base === '/compte') page = <Account />
+  else if (base === '/devenir-vendeur') { page = <BecomeSeller />; nav = false }
   else if (base === '/pro/vitrine') { page = <VitrineForm />; nav = false }
   else if (base.startsWith('/pro') && !vitrine) page = <Redirect to="/pro/vitrine" />
   else if (base === '/pro') page = <Dashboard />

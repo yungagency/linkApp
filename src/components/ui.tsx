@@ -33,18 +33,26 @@ export function TopBar({ title, back, right }: { title?: ReactNode; back?: strin
 
 export function BottomNav() {
   const path = usePath()
-  const { profile, vitrine } = useSession()
+  const { vitrine } = useSession()
   const on = (p: string) => (p === '/' ? path === '/' : path.startsWith(p)) ? 'on' : ''
-  const proTarget = !profile ? '/connexion?next=/pro' : vitrine ? '/pro/article/new' : '/pro/vitrine'
+  // Client : 4 onglets. Vendeur : le « + » et « Ma vitrine » apparaissent.
+  if (!vitrine) {
+    return (
+      <nav className="bottom-nav" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }} aria-label="Navigation principale">
+        <Link to="/" className={on('/')}><Icon name="home" />Accueil</Link>
+        <Link to="/explorer" className={on('/explorer')}><Icon name="search" />Explorer</Link>
+        <Link to="/favoris" className={on('/favoris')}><Icon name="heart" />Favoris</Link>
+        <Link to="/compte" className={on('/compte') || on('/connexion')}><Icon name="user" />Compte</Link>
+      </nav>
+    )
+  }
   return (
     <nav className="bottom-nav" aria-label="Navigation principale">
       <Link to="/" className={on('/')}><Icon name="home" />Accueil</Link>
       <Link to="/explorer" className={on('/explorer')}><Icon name="search" />Explorer</Link>
-      <Link to={proTarget} ariaLabel="Publier"><span className="fab"><Icon name="plus" stroke={2.4} /></span></Link>
-      <Link to="/favoris" className={on('/favoris')}><Icon name="heart" />Favoris</Link>
-      <Link to={profile ? (vitrine ? '/pro' : '/compte') : '/connexion'} className={on('/compte') || on('/pro') || on('/connexion')}>
-        <Icon name="user" />{vitrine ? 'Mon espace' : 'Compte'}
-      </Link>
+      <Link to="/pro/article/new" ariaLabel="Ajouter un article"><span className="fab"><Icon name="plus" stroke={2.4} /></span></Link>
+      <Link to="/pro" className={on('/pro')}><Icon name="store" />Ma vitrine</Link>
+      <Link to="/compte" className={on('/compte')}><Icon name="user" />Compte</Link>
     </nav>
   )
 }

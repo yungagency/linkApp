@@ -62,11 +62,11 @@ export function Register({ next }: { next?: string }) {
           const p = await api.getProfile()
           if (!p) { setInfo('Compte créé. Ouvrez le lien de confirmation reçu par email, puis connectez-vous.'); return }
           await refresh()
-          navigate(next || '/pro/vitrine', true)
+          navigate(next || '/', true)
         } catch (x) { setErr(errorMessage(x)) } finally { setBusy(false) }
       }}>
         <h1>Créer un compte</h1>
-        <p className="muted">Gratuit. Vous pourrez ensuite ouvrir votre vitrine en 2 minutes.</p>
+        <p className="muted">{next?.startsWith('/pro') ? 'Gratuit. Ensuite, vous ouvrez votre vitrine en 2 minutes.' : 'Gratuit. Retrouvez vos favoris et contactez les vendeurs.'}</p>
         <label className="field"><span>Nom complet</span>
           <input className="input" required autoComplete="name" value={f.full_name} onChange={set('full_name')} />
         </label>
