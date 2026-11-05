@@ -47,6 +47,8 @@ export interface Item {
   unit: string
   image_url: string | null
   available: boolean
+  /** Délai de livraison promis, en jours (0 = le jour même) */
+  delivery_days: number
   created_at: string
 }
 
@@ -82,6 +84,13 @@ export interface Order {
   address: string
   note: string
   status: OrderStatus
+  /** true = LinkApp Assurance (argent bloqué) ; false = paiement à la livraison / direct */
+  protected: boolean
+  delivery_days: number
+  /** Date limite de livraison (calculée au paiement sécurisé, ou à la commande sans assurance) */
+  deliver_by: string | null
+  /** Livraison confirmée par le code de réception du client */
+  delivery_verified: boolean
   payment_method: 'orange' | 'mtn' | null
   payment_ref: string | null
   dispute_reason: string | null
@@ -98,6 +107,8 @@ export interface OrderEvent {
   status: OrderStatus
   actor: 'buyer' | 'seller' | 'admin'
   note: string
+  /** Photos jointes : preuve de livraison, preuves de litige… */
+  attachments: string[]
   created_at: string
 }
 
@@ -108,6 +119,7 @@ export interface NewOrder {
   buyer_phone: string
   address: string
   note: string
+  protected: boolean
 }
 
 export interface OrderMove {
@@ -115,6 +127,9 @@ export interface OrderMove {
   payment_method?: 'orange' | 'mtn'
   payment_ref?: string
   dispute_reason?: string
+  attachments?: string[]
+  /** Code de réception donné par le client au livreur */
+  code?: string
 }
 
 export interface VitrineQuery {
@@ -169,6 +184,10 @@ export interface Api {
   sellerOrders(): Promise<Order[]>
   getOrder(id: string): Promise<{ order: Order; events: OrderEvent[]; role: 'buyer' | 'seller' | 'admin' } | null>
   moveOrder(id: string, to: OrderStatus, extra?: OrderMove): Promise<void>
+  /** Ajouter des preuves pendant un litige (client, vendeur ou admin) */
+  addEvidence(id: string, note: string, attachments: string[]): Promise<void>
+  /** Code de réception : visible par le client seulement */
+  getDeliveryCode(id: string): Promise<string | null>
   adminListOrders(): Promise<Order[]>
   adminMarkPayout(id: string): Promise<void>
   // Admin

@@ -5,8 +5,8 @@ import { TYPES } from '../../config'
 import { api } from '../../lib/api'
 import type { Vitrine, VitrineType } from '../../lib/types'
 import { errorMessage, formatPrice, isPremiumActive } from '../../lib/utils'
-import { HELD, type OrderStatus } from '../../lib/orders'
-import { StatusBadge } from '../orders/Orders'
+import { HELD, isLate, type OrderStatus } from '../../lib/orders'
+import { LateBadge, StatusBadge } from '../orders/Orders'
 
 type Tab = 'stats' | 'orders' | 'vitrines' | 'premium' | 'categories'
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -216,15 +216,16 @@ function Categories() {
 
 function Escrow() {
   const list = useLoad(() => api.adminListOrders(), [])
-  const [f, setF] = useState<'check' | 'held' | 'dispute' | 'payout' | 'all'>('check')
+  const [f, setF] = useState<'check' | 'held' | 'late' | 'dispute' | 'payout' | 'all'>('check')
   const all = list.data ?? []
   const sum = (xs: typeof all, k: 'subtotal' | 'seller_amount' | 'commission') => xs.reduce((a, o) => a + o[k], 0)
-  const held = all.filter((o) => HELD.includes(o.status))
+  const held = all.filter((o) => o.protected && HELD.includes(o.status))
   const toCheck = all.filter((o) => o.status === 'payment_submitted')
   const disputes = all.filter((o) => o.status === 'dispute')
-  const toPay = all.filter((o) => o.status === 'completed' && o.payout_status === 'pending')
-  const earned = all.filter((o) => o.status === 'completed')
-  const rows = f === 'check' ? toCheck : f === 'held' ? held : f === 'dispute' ? disputes : f === 'payout' ? toPay : all
+  const lates = all.filter((o) => isLate(o))
+  const toPay = all.filter((o) => o.protected && o.status === 'completed' && o.payout_status === 'pending')
+  const earned = all.filter((o) => o.protected && o.status === 'completed')
+  const rows = f === 'check' ? toCheck : f === 'held' ? held : f === 'late' ? lates : f === 'dispute' ? disputes : f === 'payout' ? toPay : all
   const fcfa = (n: number) => formatPrice(n)
   return (
     <>
@@ -237,9 +238,10 @@ function Escrow() {
         <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="users" size={16} />À reverser aux vendeurs</span><b>{fcfa(sum(toPay, 'seller_amount'))}</b><span className="tiny muted">{toPay.length} versement(s)</span></div>
         <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="chart" size={16} />Commissions gagnées</span><b>{fcfa(sum(earned, 'commission'))}</b></div>
         <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="bell" size={16} />Litiges</span><b>{disputes.length}</b></div>
+        <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="truck" size={16} />Livraisons en retard</span><b>{lates.length}</b></div>
       </div>
       <div className="chips">
-        {([['check', `À vérifier (${toCheck.length})`], ['held', `Bloqués (${held.length})`], ['dispute', `Litiges (${disputes.length})`], ['payout', `À reverser (${toPay.length})`], ['all', 'Toutes']] as const).map(([k, l]) => (
+        {([['check', `À vérifier (${toCheck.length})`], ['held', `Bloqués (${held.length})`], ['late', `En retard (${lates.length})`], ['dispute', `Litiges (${disputes.length})`], ['payout', `À reverser (${toPay.length})`], ['all', 'Toutes']] as const).map(([k, l]) => (
           <button key={k} className={'chip ' + (f === k ? 'on' : '')} onClick={() => setF(k)}>{l}</button>
         ))}
       </div>
@@ -254,7 +256,7 @@ function Escrow() {
                   <td className="small">{o.buyer_name}<br /><span className="tiny muted">{o.buyer_phone}</span></td>
                   <td className="small">{o.vitrine?.name ?? '—'}</td>
                   <td className="small"><b>{fcfa(o.subtotal)}</b><br /><span className="tiny muted">vendeur {fcfa(o.seller_amount)}</span></td>
-                  <td><StatusBadge s={o.status as OrderStatus} />{o.status === 'completed' && <><br /><span className="tiny muted">{o.payout_status === 'paid' ? 'versé' : 'à reverser'}</span></>}</td>
+                  <td>{isLate(o) && <><LateBadge /><br /></>}<StatusBadge s={o.status as OrderStatus} />{!o.protected && <><br /><span className="tiny muted">sans assurance</span></>}{o.status === 'completed' && <><br /><span className="tiny muted">{o.payout_status === 'paid' ? 'versé' : 'à reverser'}</span></>}</td>
                   <td><a className="btn soft sm" href={`#/commande/${o.id}`}>Ouvrir</a></td>
                 </tr>
               ))}

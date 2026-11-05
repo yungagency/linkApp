@@ -1,25 +1,26 @@
 /**
- * ACHAT PROTÉGÉ LINKAPP — inspiré de la « Trade Assurance » d'Alibaba.
+ * COMMANDES LINKAPP — deux façons d'acheter, au choix du client :
  *
- *  1. Le client commande ............................. pending_payment
- *  2. Il paie par Mobile Money et donne la référence . payment_submitted
- *  3. L'admin vérifie : l'argent est bloqué ........... paid          (séquestre)
- *  4. Le vendeur prépare .............................. preparing
- *  5. Le vendeur expédie .............................. shipped
- *  6. Le vendeur indique la livraison ................. delivered
- *  7. Le client confirme (ou délai écoulé) ............ completed     → fonds libérés au vendeur
- *     ou ouvre un litige .............................. dispute       → l'admin rembourse ou libère
- *  Annulation possible avant l'expédition ............. cancelled / refunded
+ * A. AVEC « LinkApp Assurance » (séquestre, inspiré de la Trade Assurance d'Alibaba)
+ *    pending_payment → payment_submitted → paid (argent bloqué) → preparing → shipped
+ *    → delivered (preuve : code de réception ou photo) → completed (fonds libérés)
+ *    Litige possible tant que le client n'a pas confirmé : chacun dépose ses preuves,
+ *    LinkApp tranche (remboursement ou libération). Délai de livraison dépassé = litige possible.
+ *
+ * B. SANS assurance (paiement à la livraison ou directement au vendeur)
+ *    placed → preparing → shipped → delivered → completed
+ *    LinkApp assure seulement le suivi ; aucun argent ne transite par LinkApp.
  *
  * Ces règles sont appliquées dans l'app ET dans la base (fonction order_transition).
  */
 export type OrderStatus =
-  | 'pending_payment' | 'payment_submitted' | 'paid' | 'preparing' | 'shipped'
+  | 'placed' | 'pending_payment' | 'payment_submitted' | 'paid' | 'preparing' | 'shipped'
   | 'delivered' | 'completed' | 'dispute' | 'refunded' | 'cancelled'
 
 export type Actor = 'buyer' | 'seller' | 'admin'
 
 export const STATUS: Record<OrderStatus, { label: string; short: string; tone: 'warn' | 'info' | 'ok' | 'off' | 'secure' }> = {
+  placed: { label: 'Commande envoyée au vendeur', short: 'Envoyée', tone: 'warn' },
   pending_payment: { label: 'En attente de paiement', short: 'À payer', tone: 'warn' },
   payment_submitted: { label: 'Paiement en vérification', short: 'Vérification', tone: 'warn' },
   paid: { label: 'Paiement sécurisé', short: 'Sécurisé', tone: 'secure' },
@@ -32,8 +33,10 @@ export const STATUS: Record<OrderStatus, { label: string; short: string; tone: '
   cancelled: { label: 'Annulée', short: 'Annulée', tone: 'off' },
 }
 
-/** Qui peut faire passer une commande d'un statut à un autre. */
-export const TRANSITIONS: Record<OrderStatus, Partial<Record<OrderStatus, Actor[]>>> = {
+type Rules = Partial<Record<OrderStatus, Partial<Record<OrderStatus, Actor[]>>>>
+
+/** Avec LinkApp Assurance */
+const PROTECTED: Rules = {
   pending_payment: { payment_submitted: ['buyer'], cancelled: ['buyer', 'seller', 'admin'], paid: ['admin'] },
   payment_submitted: { paid: ['admin'], pending_payment: ['admin'], cancelled: ['admin'] },
   paid: { preparing: ['seller'], refunded: ['admin'], dispute: ['buyer'] },
@@ -41,33 +44,60 @@ export const TRANSITIONS: Record<OrderStatus, Partial<Record<OrderStatus, Actor[
   shipped: { delivered: ['seller'], completed: ['buyer'], dispute: ['buyer'] },
   delivered: { completed: ['buyer', 'admin'], dispute: ['buyer'] },
   dispute: { completed: ['admin'], refunded: ['admin'] },
-  completed: {},
-  refunded: {},
-  cancelled: {},
 }
 
-export function canMove(from: OrderStatus, to: OrderStatus, actor: Actor) {
-  return !!TRANSITIONS[from]?.[to]?.includes(actor)
+/** Sans assurance : simple suivi */
+const DIRECT: Rules = {
+  placed: { preparing: ['seller'], cancelled: ['buyer', 'seller', 'admin'] },
+  preparing: { shipped: ['seller'], cancelled: ['buyer', 'seller', 'admin'] },
+  shipped: { delivered: ['seller'], completed: ['buyer'], cancelled: ['admin'] },
+  delivered: { completed: ['buyer', 'admin'] },
+}
+
+export function canMove(o: { status: OrderStatus; protected: boolean }, to: OrderStatus, actor: Actor) {
+  const r = o.protected ? PROTECTED : DIRECT
+  return !!r[o.status]?.[to]?.includes(actor)
 }
 
 /** Étapes affichées dans la frise de suivi. */
-export const STEPS: { key: OrderStatus; label: string; icon: string }[] = [
-  { key: 'pending_payment', label: 'Commandée', icon: 'box' },
-  { key: 'paid', label: 'Sécurisée', icon: 'shield' },
-  { key: 'preparing', label: 'Préparée', icon: 'store' },
-  { key: 'shipped', label: 'Expédiée', icon: 'truck' },
-  { key: 'delivered', label: 'Livrée', icon: 'pin' },
-  { key: 'completed', label: 'Terminée', icon: 'check' },
-]
-const ORDER: OrderStatus[] = ['pending_payment', 'payment_submitted', 'paid', 'preparing', 'shipped', 'delivered', 'completed']
-export function stepIndex(s: OrderStatus): number {
-  if (s === 'payment_submitted') return 0
-  const i = ORDER.indexOf(s)
-  return i < 0 ? -1 : STEPS.findIndex((x) => x.key === s)
+export function stepsFor(isProtected: boolean): { key: OrderStatus; label: string; icon: string }[] {
+  return isProtected
+    ? [
+      { key: 'pending_payment', label: 'Commandée', icon: 'box' },
+      { key: 'paid', label: 'Sécurisée', icon: 'shield' },
+      { key: 'preparing', label: 'Préparée', icon: 'store' },
+      { key: 'shipped', label: 'Expédiée', icon: 'truck' },
+      { key: 'delivered', label: 'Livrée', icon: 'pin' },
+      { key: 'completed', label: 'Terminée', icon: 'check' },
+    ]
+    : [
+      { key: 'placed', label: 'Envoyée', icon: 'box' },
+      { key: 'preparing', label: 'Acceptée', icon: 'store' },
+      { key: 'shipped', label: 'Expédiée', icon: 'truck' },
+      { key: 'delivered', label: 'Livrée', icon: 'pin' },
+      { key: 'completed', label: 'Terminée', icon: 'check' },
+    ]
+}
+export function stepIndex(s: OrderStatus, isProtected: boolean): number {
+  const key = s === 'payment_submitted' ? 'pending_payment' : s
+  return stepsFor(isProtected).findIndex((x) => x.key === key)
 }
 
 /** Argent bloqué = payé par le client mais pas encore versé ni remboursé. */
 export const HELD: OrderStatus[] = ['paid', 'preparing', 'shipped', 'delivered', 'dispute']
+/** Statuts où le délai de livraison court. */
+export const RUNNING: OrderStatus[] = ['placed', 'paid', 'preparing', 'shipped']
 
-/** Après la livraison, le client a ce délai pour confirmer ou contester. Ensuite l'admin peut clôturer. */
+/** Après la livraison, le client a ce délai pour confirmer ou contester. Ensuite LinkApp peut clôturer. */
 export const CONFIRM_DAYS = 3
+
+/** Délais proposés au vendeur pour chaque article (en jours, 0 = le jour même). */
+export const DELIVERY_OPTIONS: { days: number; label: string }[] = [
+  { days: 0, label: 'Le jour même' }, { days: 1, label: '24 h' }, { days: 2, label: '48 h' },
+  { days: 3, label: '3 jours' }, { days: 5, label: '5 jours' }, { days: 7, label: '7 jours' }, { days: 14, label: '14 jours' },
+]
+export const deliveryLabel = (d: number) => DELIVERY_OPTIONS.find((o) => o.days === d)?.label ?? `${d} jours`
+
+export function isLate(o: { status: OrderStatus; deliver_by: string | null }) {
+  return !!o.deliver_by && RUNNING.includes(o.status) && new Date(o.deliver_by) < new Date()
+}

@@ -4,6 +4,8 @@ import { Empty, ItemCard, Media, PremiumBadge, Skeleton, TypeBadge, toast, useFa
 import { TYPES } from '../config'
 import { api } from '../lib/api'
 import { ProtectionNote } from './orders/Orders'
+import { APP } from '../config'
+import { deliveryLabel } from '../lib/orders'
 import type { Item, VitrineType } from '../lib/types'
 import { formatPrice, intlPhone, isPremiumActive, waLink } from '../lib/utils'
 
@@ -111,12 +113,14 @@ function ItemSheet({ item, slug, vitrineName, type, phone, onClose }:
           {item.description && <p style={{ color: 'var(--ink-2)' }}>{item.description}</p>}
           {item.available && item.price != null && (
             <>
-              <a className="btn block" href={`#/commander/${slug}/${item.id}`}><Icon name="shield" size={18} />Acheter avec protection</a>
+              <a className="btn block" href={`#/commander/${slug}/${item.id}`}><Icon name="shield" size={18} />Acheter avec {APP.protectionName}</a>
               <ProtectionNote compact />
+              <a className="btn ghost block" href={`#/commander/${slug}/${item.id}?mode=direct`}>Commander sans assurance</a>
+              <p className="tiny muted center">{item.delivery_days === 0 ? 'Livraison le jour même' : `Livraison promise : ${deliveryLabel(item.delivery_days ?? 2)}`}</p>
             </>
           )}
           {phone && (
-            <a className="btn ghost block" target="_blank" rel="noreferrer"
+            <a className="link center" style={{ display: 'block' }} target="_blank" rel="noreferrer"
               href={waLink(phone, `Bonjour ${vitrineName}, je suis intéressé(e) par « ${item.title} » vu sur LinkApp. Est-ce disponible ?`)}>
               <Icon name="chat" size={18} />Poser une question sur WhatsApp
             </a>

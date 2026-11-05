@@ -14,6 +14,8 @@ export const APP = {
   paymentNumbers: { orange: '', mtn: '' },
   /** Commission LinkApp prélevée sur le montant versé au vendeur. 5 % = valeur provisoire, À DÉCIDER. */
   commissionRate: 0.05,
+  /** Nom de l'offre de protection (un seul endroit à changer si besoin, voir l'analyse sur le mot « assurance ») */
+  protectionName: 'LinkApp Assurance',
 }
 
 export const TYPES: Record<VitrineType, {

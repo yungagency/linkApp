@@ -10,7 +10,7 @@ export default function Dashboard() {
   const { vitrine: v } = useSession()
   const items = useLoad(() => (v ? api.listItems(v.id) : Promise.resolve([])), [v?.id])
   const orders = useLoad(() => (v ? api.sellerOrders() : Promise.resolve([])), [v?.id])
-  const todo = (orders.data ?? []).filter((o) => ['paid', 'preparing', 'shipped'].includes(o.status)).length
+  const todo = (orders.data ?? []).filter((o) => ['placed', 'paid', 'preparing', 'shipped'].includes(o.status)).length
   if (!v) return null
 
   const t = TYPES[v.type]

@@ -129,7 +129,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async createOrder(o) {
       const r = await sb.rpc('create_order', {
         p_item_id: o.item_id, p_quantity: o.quantity, p_buyer_name: o.buyer_name,
-        p_buyer_phone: o.buyer_phone, p_address: o.address, p_note: o.note,
+        p_buyer_phone: o.buyer_phone, p_address: o.address, p_note: o.note, p_protected: o.protected,
       })
       return must(r) as Order
     },
@@ -159,7 +159,15 @@ export function createSupabaseApi(url: string, key: string): Api {
       must(await sb.rpc('order_transition', {
         p_order_id: oid, p_to: to, p_note: extra.note ?? '', p_payment_method: extra.payment_method ?? null,
         p_payment_ref: extra.payment_ref ?? null, p_dispute_reason: extra.dispute_reason ?? null,
+        p_attachments: extra.attachments ?? [], p_code: extra.code ?? null,
       }))
+    },
+    async addEvidence(oid, note, attachments) {
+      must(await sb.rpc('order_add_evidence', { p_order_id: oid, p_note: note, p_attachments: attachments }))
+    },
+    async getDeliveryCode(oid) {
+      const r = await sb.from('order_secrets').select('delivery_code').eq('order_id', oid).maybeSingle()
+      return (r.data?.delivery_code as string | undefined) ?? null
     },
     async adminListOrders() {
       return must(await sb.from('orders').select(ORDER_SELECT).order('created_at', { ascending: false }).limit(500)) as Order[]

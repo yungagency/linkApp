@@ -17,10 +17,13 @@ Une seule structure de données « vitrine » sert les 3 profils : seuls les lib
 
 **Reporté en V2 :** paiement CinetPay intégré, notifications push, carte / géolocalisation, statistiques détaillées, publication sur les stores.
 
-## Achat protégé (type « Trade Assurance » d'Alibaba)
+## LinkApp Assurance (type « Trade Assurance » d'Alibaba) — au choix du client
 
 Commande → paiement Mobile Money → **argent bloqué** → préparation → expédition → livraison → **confirmation du client** → versement au vendeur (moins la commission). Litige possible à tout moment avant la confirmation : l'argent reste bloqué et l'admin rembourse ou libère.
 
+- **Optionnelle** : le client peut aussi commander *sans assurance* (paiement direct au vendeur, simple suivi, pas de commission).
+- **Délai de livraison** promis par le vendeur pour chaque article ; dépassé = le client peut demander le remboursement.
+- **Preuves** : code de réception à 4 chiffres (connu du client seul) ou photo de la remise ; photo du bordereau d'agence à l'expédition ; en litige, chacun dépose photos et explications.
 - Chaque étape est contrôlée dans la base (`order_transition`) et inscrite dans un **historique** (qui, quand, quoi).
 - Le prix est recalculé côté serveur : le client ne peut pas le modifier.
 - **V1 : vérification manuelle** des paiements par l'admin (onglet *Commandes & séquestre*). V2 : agrégateur de paiement.
@@ -44,7 +47,7 @@ Compte admin démo : `admin@demo.linkapp` / `admin123`.
 ## Brancher Supabase (pas à pas)
 
 1. **Créer le projet** : supabase.com → *New project* → nom `linkapp`, région la plus proche (Europe, ex. Frankfurt), mot de passe de base de données à conserver.
-2. **Créer les tables** : menu *SQL Editor* → *New query* → coller tout le fichier `supabase/migrations/0001_init.sql` → *Run*. Résultat attendu : « Success. No rows returned ». Recommencer avec `supabase/migrations/0002_orders.sql` (achat protégé).
+2. **Créer les tables** : menu *SQL Editor* → *New query* → coller tout le fichier `supabase/migrations/0001_init.sql` → *Run*. Résultat attendu : « Success. No rows returned ». Recommencer avec `supabase/migrations/0002_orders.sql` puis `0003_assurance_preuves_delais.sql`, dans cet ordre.
 3. **Récupérer les 2 clés** : *Project Settings → API* (ou *API Keys*)
    - **Project URL** → `VITE_SUPABASE_URL` (forme `https://xxxx.supabase.co`)
    - **Publishable key** (`sb_publishable_…`) ou, sur les anciens projets, **anon public** → `VITE_SUPABASE_ANON_KEY`

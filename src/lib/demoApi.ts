@@ -18,10 +18,12 @@ interface DB {
   requests: PremiumRequest[]
   orders: Order[]
   events: OrderEvent[]
+  secrets: Record<string, string>
 }
 
-const KEY = 'linkapp-demo-v2'
+const KEY = 'linkapp-demo-v3'
 const now = () => new Date().toISOString()
+const addDays = (d: number) => new Date(Date.now() + d * 864e5).toISOString()
 
 function seed(): DB {
   const cats: [VitrineType, string, string][] = [
@@ -56,7 +58,7 @@ function seed(): DB {
     v(6, 'agriculture', 'GIC Les Planteurs', 'Vivres', 'Kouogouo', 'Manioc, macabo, igname en gros et demi-gros.', false, 98),
   ]
   const it = (vid: string, title: string, price: number | null, unit: string, description = '', available = true): Item => ({
-    id: uid(), vitrine_id: vid, title, price, unit, description, image_url: null, available, created_at: now(),
+    id: uid(), vitrine_id: vid, title, price, unit, description, image_url: null, available, delivery_days: 1, created_at: now(),
   })
   const items = [
     it('v-1', 'Tomates fraîches', 1500, 'le kg', 'Récolte du matin.'), it('v-1', 'Mangues', 1000, 'le kg'),
@@ -69,7 +71,7 @@ function seed(): DB {
     it('v-6', 'Maïs sec', 350, 'le kg', 'Sac de 50 kg disponible.'), it('v-6', 'Manioc', 15000, 'le sac'),
     it('v-6', 'Igname', 20000, 'le sac', '', false),
   ]
-  return { users, session: null, categories, vitrines, items, requests: [], orders: [], events: [] }
+  return { users, session: null, categories, vitrines, items, requests: [], orders: [], events: [], secrets: {} }
 }
 
 function load(): DB {
@@ -77,7 +79,9 @@ function load(): DB {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const d = JSON.parse(raw) as DB
-      d.orders ??= []; d.events ??= []
+      d.orders ??= []; d.events ??= []; d.secrets ??= {}
+      d.items.forEach((i) => { i.delivery_days ??= 2 })
+      d.orders.forEach((o) => { o.protected ??= true; o.delivery_days ??= 2; o.deliver_by ??= null; o.delivery_verified ??= false })
       return d
     }
   } catch { /* stockage indisponible : on repart du jeu de démo */ }
@@ -219,7 +223,7 @@ export function createDemoApi(): Api {
       if (!v || (v.owner_id !== u.id && u.role !== 'admin')) throw new Error('Action non autorisée')
       const existing = input.id ? db.items.find((i) => i.id === input.id) : undefined
       if (existing) { Object.assign(existing, input); save(); return delay(existing) }
-      const i: Item = { id: uid(), description: '', price: null, unit: '', image_url: null, available: true, created_at: now(), ...input } as Item
+      const i: Item = { id: uid(), description: '', price: null, unit: '', image_url: null, available: true, delivery_days: 2, created_at: now(), ...input } as Item
       db.items.push(i); save(); return delay(i)
     },
     async deleteItem(id) {
@@ -255,17 +259,23 @@ export function createDemoApi(): Api {
       if (!o.address.trim() || !o.buyer_phone.trim()) throw new Error('Adresse et téléphone de livraison obligatoires')
       const q = Math.max(1, Math.min(999, Math.round(o.quantity)))
       const subtotal = it.price * q
-      const commission = Math.round(subtotal * APP.commissionRate)
+      const rate = o.protected ? APP.commissionRate : 0
+      const commission = Math.round(subtotal * rate)
+      const days = it.delivery_days ?? 2
       const order: Order = {
         id: uid(), code: 'LK-' + uid().replace(/-/g, '').slice(0, 6).toUpperCase(), buyer_id: u.id, vitrine_id: v.id,
         item_id: it.id, item_title: it.title, item_image: it.image_url, unit: it.unit, unit_price: it.price, quantity: q,
-        subtotal, commission_rate: APP.commissionRate, commission, seller_amount: subtotal - commission,
+        subtotal, commission_rate: rate, commission, seller_amount: subtotal - commission,
         buyer_name: o.buyer_name, buyer_phone: o.buyer_phone, address: o.address, note: o.note,
-        status: 'pending_payment', payment_method: null, payment_ref: null, dispute_reason: null, delivered_at: null,
+        status: o.protected ? 'pending_payment' : 'placed', protected: o.protected, delivery_days: days,
+        deliver_by: o.protected ? null : addDays(Math.max(days, 1)), delivery_verified: false,
+        payment_method: null, payment_ref: null, dispute_reason: null, delivered_at: null,
         payout_status: 'none', created_at: now(), updated_at: now(),
       }
       db.orders.unshift(order)
-      db.events.push({ id: uid(), order_id: order.id, status: 'pending_payment', actor: 'buyer', note: 'Commande passée', created_at: now() })
+      db.secrets[order.id] = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+      db.events.push({ id: uid(), order_id: order.id, status: order.status, actor: 'buyer', attachments: [], created_at: now(),
+        note: o.protected ? 'Commande passée avec LinkApp Assurance' : 'Commande passée sans assurance' })
       save(); return delay(withVitrine(order))
     },
     async myOrders() {
@@ -283,25 +293,52 @@ export function createDemoApi(): Api {
       if (!u || !o) return delay(null)
       const role = roleFor(o, u)
       if (!role) return delay(null)
-      return delay({ order: withVitrine(o), events: db.events.filter((e) => e.order_id === id), role })
+      return delay({ order: withVitrine(o), events: db.events.filter((e) => e.order_id === id).map((e) => ({ ...e, attachments: e.attachments ?? [] })), role })
     },
     async moveOrder(id, to, extra = {}) {
       const u = needMe()
       const o = db.orders.find((x) => x.id === id)
       if (!o) throw new Error('Commande introuvable')
       const role = roleFor(o, u)
-      if (!role || !canMove(o.status, to, role)) throw new Error('Étape non autorisée')
+      if (!role || !canMove(o, to, role)) throw new Error('Étape non autorisée')
       if (to === 'payment_submitted' && !extra.payment_ref?.trim()) throw new Error('Indiquez la référence de la transaction Mobile Money')
       if (to === 'dispute' && !extra.dispute_reason?.trim()) throw new Error('Décrivez le problème')
+      let verified = false
+      if (to === 'delivered') {
+        if (extra.code?.trim()) {
+          if (extra.code.trim() !== db.secrets[o.id]) throw new Error('Code de réception incorrect')
+          verified = true
+        } else if (o.protected && !(extra.attachments?.length)) {
+          throw new Error('Ajoutez le code de réception du client ou une photo de la remise')
+        }
+        o.delivered_at = now(); o.delivery_verified = verified
+      }
       o.status = to
       if (extra.payment_method) o.payment_method = extra.payment_method
       if (extra.payment_ref) o.payment_ref = extra.payment_ref
       if (to === 'dispute') o.dispute_reason = extra.dispute_reason ?? ''
-      if (to === 'delivered') o.delivered_at = now()
-      if (to === 'completed') o.payout_status = 'pending'
+      if (to === 'paid') o.deliver_by = addDays(Math.max(o.delivery_days, 1))
+      if (to === 'completed' && o.protected) o.payout_status = 'pending'
       o.updated_at = now()
-      db.events.push({ id: uid(), order_id: id, status: to, actor: role, note: extra.note || extra.dispute_reason || '', created_at: now() })
+      const note = verified ? ['Code de réception vérifié', extra.note].filter(Boolean).join(' · ') : (extra.note || extra.dispute_reason || '')
+      db.events.push({ id: uid(), order_id: id, status: to, actor: role, note, attachments: extra.attachments ?? [], created_at: now() })
       save()
+    },
+    async addEvidence(id, note, attachments) {
+      const u = needMe()
+      const o = db.orders.find((x) => x.id === id)
+      if (!o) throw new Error('Commande introuvable')
+      const role = roleFor(o, u)
+      if (!role) throw new Error('Action non autorisée')
+      if (o.status !== 'dispute') throw new Error('Les preuves se déposent pendant un litige')
+      if (!note.trim() && !attachments.length) throw new Error('Ajoutez un message ou une photo')
+      db.events.push({ id: uid(), order_id: id, status: 'dispute', actor: role, note, attachments, created_at: now() })
+      save()
+    },
+    async getDeliveryCode(id) {
+      const u = me()
+      const o = db.orders.find((x) => x.id === id)
+      return delay(u && o && o.buyer_id === u.id ? db.secrets[id] ?? null : null)
     },
     async adminListOrders() {
       needAdmin()
@@ -312,7 +349,7 @@ export function createDemoApi(): Api {
       const o = db.orders.find((x) => x.id === id)
       if (!o || o.status !== 'completed' || o.payout_status !== 'pending') throw new Error('Versement impossible pour cette commande')
       o.payout_status = 'paid'; o.updated_at = now()
-      db.events.push({ id: uid(), order_id: id, status: 'completed', actor: 'admin', note: 'Montant versé au vendeur', created_at: now() })
+      db.events.push({ id: uid(), order_id: id, status: 'completed', actor: 'admin', note: 'Montant versé au vendeur', attachments: [], created_at: now() })
       save()
     },
 

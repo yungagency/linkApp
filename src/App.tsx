@@ -49,7 +49,7 @@ export default function App() {
   else if (base === '/inscription') { page = <Register next={query.next} />; nav = false; narrow = true }
   else if (base === '/compte') { page = <Account />; narrow = true }
   else if (base === '/devenir-vendeur') { page = <BecomeSeller />; nav = false; narrow = true }
-  else if ((m = match('/commander/:slug/:item', base))) { page = <Checkout slug={m.slug!} itemId={m.item!} />; nav = false; narrow = true }
+  else if ((m = match('/commander/:slug/:item', base))) { page = <Checkout slug={m.slug!} itemId={m.item!} mode={query.mode} />; nav = false; narrow = true }
   else if (base === '/commandes') { page = <OrderList mode="buyer" />; narrow = true }
   else if ((m = match('/commande/:id', base))) { page = <OrderDetail id={m.id!} />; nav = false; narrow = true }
   else if (base === '/pro/vitrine') { page = <VitrineForm />; nav = false; narrow = true }

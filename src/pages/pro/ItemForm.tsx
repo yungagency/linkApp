@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PhotoPicker, Skeleton, TopBar, toast, useLoad } from '../../components/ui'
 import { PLANS, TYPES } from '../../config'
+import { DELIVERY_OPTIONS } from '../../lib/orders'
 import { api } from '../../lib/api'
 import { navigate } from '../../lib/router'
 import { useSession } from '../../lib/session'
@@ -24,7 +25,7 @@ export default function ItemForm({ id }: { id: string }) {
 
   useEffect(() => {
     if (!v || !all.data || f) return
-    if (isNew) { setF({ vitrine_id: v.id, title: '', description: '', unit: TYPES[v.type].defaultUnit, available: true, image_url: null }); return }
+    if (isNew) { setF({ vitrine_id: v.id, title: '', description: '', unit: TYPES[v.type].defaultUnit, available: true, image_url: null, delivery_days: 2 }); return }
     const found = all.data.find((i) => i.id === id)
     if (found) { setF(found); setPriceText(found.price == null ? '' : String(found.price)) }
     else navigate('/pro', true)
@@ -78,6 +79,12 @@ export default function ItemForm({ id }: { id: string }) {
             </select>
           </label>
         </div>
+        <label className="field"><span>{v.type === 'service' ? 'Délai de réalisation' : 'Délai de livraison'}</span>
+          <select className="select" value={f.delivery_days ?? 2} onChange={(e) => set('delivery_days', Number(e.target.value))}>
+            {DELIVERY_OPTIONS.map((o) => <option key={o.days} value={o.days}>{o.label}</option>)}
+          </select>
+          <p className="hint">Engagement affiché au client. En cas de retard avec {'LinkApp Assurance'}, le client peut demander un remboursement.</p>
+        </label>
         <label className="field"><span>Description</span>
           <textarea className="textarea" maxLength={500} value={f.description ?? ''} onChange={(e) => set('description', e.target.value)}
             placeholder={v.type === 'agriculture' ? 'Variété, quantité disponible, période de récolte…' : 'Détails utiles pour le client…'} />
