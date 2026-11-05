@@ -12,7 +12,7 @@ export function uid(): string {
 
 export function formatPrice(price: number | null, unit?: string): string {
   if (price == null || Number.isNaN(price)) return 'Prix sur demande'
-  const n = Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F') + ' FCFA'
+  const n = Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + ' FCFA'
   return unit ? `${n} / ${unit.replace(/^(le |la |l')/, '')}` : n
 }
 

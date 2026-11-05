@@ -38,12 +38,14 @@ export function Splash() {
           <img src="./logo-mark.png" alt="" />
           <span className="splash-shine" style={{ WebkitMask: MASK, mask: MASK }} />
         </div>
+        <div className="splash-lockup">
         <div className="splash-word">
           {letters.map((l, i) => (
             <span key={i} className={i >= 4 ? 'app' : ''} style={{ animationDelay: `${0.75 + i * 0.06}s` }}>{l}</span>
           ))}
         </div>
         <p className="splash-tag">Vos opportunités, en un seul lieu</p>
+        </div>
       </div>
       <div className="splash-bar"><span /></div>
     </div>

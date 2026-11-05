@@ -19,7 +19,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar home-top">
         <div className="grow"><Logo /></div>
         <a className="icon-btn" href="#/compte" aria-label="Mon compte"><Icon name="user" /></a>
       </header>

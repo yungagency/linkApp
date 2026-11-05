@@ -81,7 +81,7 @@ export default function Explore({ params }: { params: Record<string, string> }) 
         </h2>
         {vitrines.loading && [0, 1, 2].map((i) => <Skeleton key={i} h={88} />)}
         {vitrines.error && <p className="alert err">{vitrines.error}</p>}
-        {vitrines.data?.map((v) => <VitrineRow key={v.id} v={v} />)}
+        <div className="stack vlist">{vitrines.data?.map((v) => <VitrineRow key={v.id} v={v} />)}</div>
         {!vitrines.loading && vitrines.data?.length === 0 && (
           <Empty icon="search" title="Aucun résultat" text="Essayez un autre mot ou une autre catégorie." />
         )}

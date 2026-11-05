@@ -32,7 +32,7 @@ export default function VitrinePage({ slug }: { slug: string }) {
   }
 
   return (
-    <div style={{ paddingBottom: 80 }}>
+    <div className="v-page" style={{ paddingBottom: 80 }}>
       <div className="v-cover">
         <Media src={s.cover_url} type={s.type} label={s.name} />
         <button className="icon-btn" style={{ left: 16 }} aria-label="Retour" onClick={() => history.length > 1 ? history.back() : (location.hash = '/')}>

@@ -146,12 +146,12 @@ export function Favorites() {
           <Empty icon="heart" title="Aucun favori" text="Touchez le cœur d'une vitrine pour la retrouver ici."
             action={<a className="btn" href="#/explorer">Explorer</a>} />
         )}
-        {list.map((v) => (
+        <div className="stack vlist">{list.map((v) => (
           <VitrineRow key={v.id} v={v} right={
             <button className="icon-btn" style={{ color: '#E11D48' }} aria-label="Retirer"
               onClick={(e) => { e.preventDefault(); favs.toggle(v.id) }}><Icon name="heart" filled size={18} /></button>
           } />
-        ))}
+        ))}</div>
       </div>
     </>
   )

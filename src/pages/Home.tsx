@@ -21,8 +21,8 @@ export default function Home() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="grow"><Logo tagline /></div>
+      <header className="topbar home-top">
+        <div className="grow"><Logo size={32} /></div>
         <InstallButton />
       </header>
 
@@ -31,7 +31,7 @@ export default function Home() {
           <Icon name="pin" size={15} />{APP.defaultCity}, Cameroun
         </p>
 
-        <form className="search" onSubmit={(e) => { e.preventDefault(); navigate('/explorer?q=' + encodeURIComponent(q)) }}>
+        <form className="search home-search" onSubmit={(e) => { e.preventDefault(); navigate('/explorer?q=' + encodeURIComponent(q)) }}>
           <Icon name="search" size={19} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un produit, une boutique, un service…" aria-label="Rechercher" />
         </form>
@@ -59,7 +59,7 @@ export default function Home() {
           <a className="link" href="#/explorer">Voir tout</a>
         </div>
         <div className="cat-grid">
-          {(cats.data ?? []).slice(0, 4).map((c) => (
+          {(cats.data ?? []).slice(0, 8).map((c) => (
             <a key={c.id} className="cat" href={`#/explorer?type=${c.type}&cat=${c.id}`}>
               <span className="ic"><Icon name={c.icon} size={22} /></span>{c.name}
             </a>
@@ -81,7 +81,7 @@ export default function Home() {
         )}
 
         <div className="section-head"><h2>Nouveautés</h2></div>
-        <div className="stack">
+        <div className="stack vlist">
           {featured.loading && [0, 1, 2].map((i) => <Skeleton key={i} h={88} />)}
           {featured.error && <p className="alert err">{featured.error}</p>}
           {recent.map((v) => <VitrineRow key={v.id} v={v} />)}
