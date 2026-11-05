@@ -1,15 +1,16 @@
 import { Icon } from '../../components/Icon'
-import { Empty, ItemCard, Logo, useLoad } from '../../components/ui'
-import { PLANS, TYPES } from '../../config'
+import { Empty, ItemCard, Logo, Rating, VerifiedBadge, useLoad } from '../../components/ui'
+import { APP, PLANS, TYPES } from '../../config'
 import { api } from '../../lib/api'
 import { navigate } from '../../lib/router'
 import { useSession } from '../../lib/session'
-import { isPremiumActive } from '../../lib/utils'
+import { isPremiumActive, waLink } from '../../lib/utils'
 
 export default function Dashboard() {
   const { vitrine: v } = useSession()
   const items = useLoad(() => (v ? api.listItems(v.id) : Promise.resolve([])), [v?.id])
   const orders = useLoad(() => (v ? api.sellerOrders() : Promise.resolve([])), [v?.id])
+  const contacts = useLoad(() => (v ? api.contactStats(v.id) : Promise.resolve({ month: 0, total: 0 })), [v?.id])
   const todo = (orders.data ?? []).filter((o) => ['placed', 'paid', 'preparing', 'shipped'].includes(o.status)).length
   if (!v) return null
 
@@ -29,7 +30,7 @@ export default function Dashboard() {
         <div className="row between">
           <div className="grow">
             <p className="small muted">{t.space}</p>
-            <h1 className="ellipsis">{v.name}</h1>
+            <h1 className="ellipsis row" style={{ gap: 8 }}>{v.name}{v.verified && <VerifiedBadge />}</h1>
           </div>
           <a className="btn ghost sm" href="#/pro/vitrine"><Icon name="edit" size={16} />Modifier</a>
         </div>
@@ -56,6 +57,31 @@ export default function Dashboard() {
           <div className="card stat"><b>{v.views}</b><span>Visites</span></div>
           <div className="card stat"><b>{list.filter((i) => i.available).length}</b><span>Disponibles</span></div>
         </div>
+
+        <div className="grid-2">
+          <div className="card pad contacts-card">
+            <p className="tiny muted">Clients qui vous ont contacté</p>
+            <b>{contacts.data?.month ?? 0}</b> <span className="tiny muted">ces 30 jours</span>
+            <p className="tiny muted">WhatsApp et appels depuis LinkApp</p>
+          </div>
+          <div className="card pad">
+            <p className="tiny muted">Votre note</p>
+            <p className="row" style={{ gap: 6, marginTop: 4 }}><Rating v={v} /></p>
+            <p className="tiny muted" style={{ marginTop: 4 }}>Avis des clients ayant commandé via l'app</p>
+          </div>
+        </div>
+
+        {!v.verified && (
+          <div className="card pad stack" style={{ border: '1.5px solid #D6E6FF' }}>
+            <div className="row"><span className="protect-ic"><Icon name="shield" size={18} /></span>
+              <div className="grow"><b>Faites vérifier votre vitrine</b><br /><span className="small muted">Les vendeurs vérifiés peuvent proposer {APP.protectionName} : les clients paient d'avance, en confiance.</span></div>
+            </div>
+            <p className="tiny muted">Envoyez une photo de votre pièce d'identité (et de votre registre de commerce si vous en avez) à l'équipe LinkApp.</p>
+            {APP.supportWhatsapp
+              ? <a className="btn soft block" target="_blank" rel="noreferrer" href={waLink(APP.supportWhatsapp, `Bonjour, je souhaite faire vérifier ma vitrine « ${v.name} » sur LinkApp.`)}><Icon name="chat" size={16} />Demander la vérification</a>
+              : <p className="tiny muted">Le numéro de l'équipe sera bientôt affiché ici.</p>}
+          </div>
+        )}
 
         <a className="card pad row" href="#/pro/commandes">
           <span className="ic" style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--green-bg)', color: 'var(--green)' }}><Icon name="box" size={18} /></span>

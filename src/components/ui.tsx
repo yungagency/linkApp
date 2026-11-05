@@ -97,7 +97,8 @@ export function VitrineCard({ v, favs }: { v: Vitrine; favs: ReturnType<typeof u
         </button>
       </div>
       <div className="body">
-        <h3 className="ellipsis">{v.name}</h3>
+        <div className="row" style={{ gap: 6 }}><h3 className="ellipsis">{v.name}</h3>{v.verified && <span className="tick" title="Vendeur vérifié"><Icon name="check" size={11} stroke={3} /></span>}</div>
+        <div className="row small" style={{ marginTop: 2 }}><Rating v={v} /></div>
         <div className="row small muted" style={{ marginTop: 4 }}>
           <Icon name="pin" size={14} />
           <span className="ellipsis grow">{[v.district, v.city].filter(Boolean).join(', ') || 'Localisation non précisée'}</span>
@@ -115,10 +116,11 @@ export function VitrineRow({ v, right }: { v: Vitrine; right?: ReactNode }) {
       <div className="grow">
         <div className="row" style={{ gap: 6 }}>
           <h3 className="ellipsis">{v.name}</h3>
+          {v.verified && <span className="tick" title="Vendeur vérifié"><Icon name="check" size={11} stroke={3} /></span>}
           {isPremiumActive(v) && <Icon name="crown" size={14} className="gold" />}
         </div>
         <p className="small muted ellipsis">{v.description || TYPES[v.type].label}</p>
-        <p className="tiny muted row" style={{ gap: 4, marginTop: 2 }}><Icon name="pin" size={12} />{v.district || v.city || '—'}</p>
+        <p className="tiny muted row" style={{ gap: 8, marginTop: 2 }}><Rating v={v} /><span className="row" style={{ gap: 3 }}><Icon name="pin" size={12} />{v.district || v.city || '—'}</span></p>
       </div>
       {right ?? <Icon name="chevron" className="muted" />}
     </a>
@@ -222,4 +224,27 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[]) {
     return () => window.removeEventListener(NET_EVENTS.retry, on)
   }, [])
   return { data, error, loading, reload: () => setTick((t) => t + 1) }
+}
+
+/** Note en étoiles (lecture seule ou sélection). */
+export function Stars({ value, size = 14, onPick }: { value: number; size?: number; onPick?: (n: number) => void }) {
+  return (
+    <span className="stars" role={onPick ? 'radiogroup' : 'img'} aria-label={`${value} sur 5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        onPick
+          ? <button key={n} type="button" aria-label={`${n} étoile${n > 1 ? 's' : ''}`} className={n <= value ? 'on' : ''} onClick={() => onPick(n)}><Icon name="star" size={size} filled={n <= value} /></button>
+          : <span key={n} className={n <= Math.round(value) ? 'on' : ''}><Icon name="star" size={size} filled={n <= Math.round(value)} /></span>
+      ))}
+    </span>
+  )
+}
+
+/** Note moyenne compacte : ★ 4,6 (12) — ou « Nouveau » sans avis. */
+export function Rating({ v }: { v: { rating_avg: number; rating_count: number } }) {
+  if (!v.rating_count) return <span className="tiny muted">Nouveau</span>
+  return <span className="rating"><Icon name="star" size={13} filled />{String(v.rating_avg).replace('.', ',')} <span className="muted">({v.rating_count})</span></span>
+}
+
+export function VerifiedBadge() {
+  return <span className="badge verified" title="Identité vérifiée par LinkApp"><Icon name="check" size={12} stroke={2.6} />Vérifié</span>
 }

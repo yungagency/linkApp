@@ -702,3 +702,26 @@ h1 { font-weight: 700; } h2 { font-weight: 650; } h3 { font-weight: 600; }
 .zoom img { max-width: 100%; max-height: 90dvh; border-radius: 14px; }
 .dispute-box { border: 1.5px solid #FCA5A5; background: #FFF8F8; }
 .deadline svg { flex-shrink: 0; }
+
+/* Confiance : note, vérifié, avis */
+.stars { display: inline-flex; gap: 2px; color: #CBD5E1; }
+.stars .on { color: #F5B301; }
+.stars button { padding: 4px; color: inherit; }
+.stars button.on { color: #F5B301; }
+.rating { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; color: var(--ink); }
+.rating svg { color: #F5B301; }
+.tick { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--blue-500); color: #fff; flex-shrink: 0; }
+.badge.verified { background: #E6F0FF; color: #1D4ED8; }
+.review { padding: 12px 0; }
+.review + .review { border-top: 1px solid var(--line); }
+.zone-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.zone-opts button { padding: 10px 8px; border-radius: 12px; border: 2px solid var(--line); background: #fff; font-size: 12.5px; font-weight: 600; text-align: center; }
+.zone-opts button.on { border-color: var(--blue-500); background: var(--blue-50); color: var(--blue-700); }
+.zone-opts button small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; font-size: 11px; }
+.choice:disabled { opacity: .55; cursor: not-allowed; }
+.contacts-card b { font-size: 26px; letter-spacing: -.02em; }
+.rules h2 { margin-top: 22px; font-size: 17px; }
+.rules p, .rules li { color: var(--ink-2); font-size: 14px; }
+.rules ul { padding-left: 18px; margin-top: 6px; }
+.rules li { margin: 4px 0; }
+.gw-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: linear-gradient(160deg, #F3F6FB, #E7EEF8); }

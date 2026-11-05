@@ -8,10 +8,11 @@ import { errorMessage, formatPrice, isPremiumActive } from '../../lib/utils'
 import { HELD, isLate, type OrderStatus } from '../../lib/orders'
 import { LateBadge, StatusBadge } from '../orders/Orders'
 
-type Tab = 'stats' | 'orders' | 'vitrines' | 'premium' | 'categories'
+type Tab = 'stats' | 'orders' | 'payouts' | 'vitrines' | 'premium' | 'categories'
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'stats', label: 'Tableau de bord', icon: 'chart' },
   { id: 'orders', label: 'Commandes & séquestre', icon: 'shield' },
+  { id: 'payouts', label: 'Versements vendeurs', icon: 'users' },
   { id: 'vitrines', label: 'Vitrines', icon: 'store' },
   { id: 'premium', label: 'Demandes Premium', icon: 'crown' },
   { id: 'categories', label: 'Catégories', icon: 'grid' },
@@ -38,6 +39,7 @@ export default function Admin() {
       <main className="admin-main stack">
         {tab === 'stats' && <Stats />}
         {tab === 'orders' && <Escrow />}
+        {tab === 'payouts' && <Payouts />}
         {tab === 'vitrines' && <Vitrines />}
         {tab === 'premium' && <Requests />}
         {tab === 'categories' && <Categories />}
@@ -118,6 +120,11 @@ function Vitrines() {
                       {isPremiumActive(v)
                         ? <button className="btn ghost sm" onClick={() => update(v, { is_premium: false, premium_until: null }, 'Premium retiré')}>Retirer Premium</button>
                         : <button className="btn soft sm" onClick={() => update(v, { is_premium: true, premium_until: plusMonths(1) }, 'Premium activé pour 1 mois')}>Premium 1 mois</button>}
+                      <button className={'btn sm ' + (v.verified ? 'ghost' : 'soft')} onClick={() => (v.verified
+                        ? confirm(`Retirer la vérification de « ${v.name} » ?`) && update(v, { verified: false }, 'Vérification retirée')
+                        : confirm(`Pièce d'identité de « ${v.name} » contrôlée ?`) && update(v, { verified: true }, 'Vendeur vérifié'))}>
+                        {v.verified ? 'Vérifié ✓' : 'Vérifier'}
+                      </button>
                       {v.status === 'active'
                         ? <button className="btn danger sm" onClick={() => confirm(`Suspendre « ${v.name} » ?`) && update(v, { status: 'suspended' }, 'Vitrine suspendue')}>Suspendre</button>
                         : <button className="btn green sm" onClick={() => update(v, { status: 'active' }, 'Vitrine activée')}>Activer</button>}
@@ -264,6 +271,45 @@ function Escrow() {
             </tbody>
           </table>
         )}
+      </div>
+    </>
+  )
+}
+
+/** Versements groupés par vendeur (suggestion : 2 fois par semaine pour limiter les frais). */
+function Payouts() {
+  const list = useLoad(() => api.adminListOrders(), [])
+  const [busy, setBusy] = useState('')
+  const due = (list.data ?? []).filter((o) => o.protected && o.status === 'completed' && o.payout_status === 'pending')
+  const groups = Object.values(due.reduce<Record<string, { name: string; phone: string; total: number; orders: typeof due }>>((acc, o) => {
+    const k = o.vitrine_id
+    acc[k] ??= { name: o.vitrine?.name ?? '—', phone: o.vitrine?.whatsapp || o.vitrine?.phone || '', total: 0, orders: [] }
+    acc[k].total += o.seller_amount; acc[k].orders.push(o)
+    return acc
+  }, {}))
+  return (
+    <>
+      <h1>Versements vendeurs</h1>
+      <p className="muted small">Regroupez les versements (par exemple le mardi et le vendredi) pour limiter les frais Mobile Money.
+        Envoyez le montant au vendeur, puis marquez-le comme versé.</p>
+      {list.loading && <Skeleton h={120} />}
+      {!list.loading && groups.length === 0 && <div className="card pad"><p className="muted">Aucun versement en attente.</p></div>}
+      <div className="stack">
+        {groups.map((g) => (
+          <div key={g.name + g.total} className="card pad row" style={{ flexWrap: 'wrap' }}>
+            <div className="grow">
+              <b>{g.name}</b><br />
+              <span className="tiny muted">{g.orders.length} commande(s) · {g.orders.map((o) => o.code).join(', ')}{g.phone ? ` · ${g.phone}` : ''}</span>
+            </div>
+            <b style={{ fontSize: 18 }}>{formatPrice(g.total)}</b>
+            <button className="btn green sm" disabled={!!busy} onClick={async () => {
+              if (!confirm(`Confirmer le versement de ${formatPrice(g.total)} à ${g.name} ?`)) return
+              setBusy(g.name)
+              try { for (const o of g.orders) await api.adminMarkPayout(o.id); toast('Versement enregistré'); list.reload() }
+              catch (x) { toast(errorMessage(x)) } finally { setBusy('') }
+            }}>{busy === g.name ? 'Enregistrement…' : 'Marquer versé'}</button>
+          </div>
+        ))}
       </div>
     </>
   )

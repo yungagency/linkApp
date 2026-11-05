@@ -35,6 +35,10 @@ export interface Vitrine {
   is_premium: boolean
   premium_until: string | null
   views: number
+  /** Pièce d'identité vérifiée par LinkApp : condition pour proposer LinkApp Assurance */
+  verified: boolean
+  rating_avg: number
+  rating_count: number
   created_at: string
 }
 
@@ -91,7 +95,9 @@ export interface Order {
   deliver_by: string | null
   /** Livraison confirmée par le code de réception du client */
   delivery_verified: boolean
-  payment_method: 'orange' | 'mtn' | null
+  delivery_zone: DeliveryZone
+  gateway_tx: string | null
+  payment_method: 'orange' | 'mtn' | 'cinetpay' | null
   payment_ref: string | null
   dispute_reason: string | null
   delivered_at: string | null
@@ -120,6 +126,20 @@ export interface NewOrder {
   address: string
   note: string
   protected: boolean
+  zone: DeliveryZone
+}
+
+export type DeliveryZone = 'city' | 'intercity' | 'pickup'
+
+export interface Review {
+  id: string
+  order_id: string
+  vitrine_id: string
+  buyer_name: string
+  item_title: string
+  rating: number
+  comment: string
+  created_at: string
 }
 
 export interface OrderMove {
@@ -188,12 +208,21 @@ export interface Api {
   addEvidence(id: string, note: string, attachments: string[]): Promise<void>
   /** Code de réception : visible par le client seulement */
   getDeliveryCode(id: string): Promise<string | null>
+  /** Paiement en ligne CinetPay (LinkApp Assurance) */
+  startPayment(orderId: string): Promise<{ payment_url: string }>
+  checkPayment(orderId: string): Promise<string>
+  // Confiance
+  logContact(vitrineId: string, channel: 'whatsapp' | 'call', itemId?: string): Promise<void>
+  contactStats(vitrineId: string): Promise<{ month: number; total: number }>
+  listReviews(vitrineId: string): Promise<Review[]>
+  orderReview(orderId: string): Promise<Review | null>
+  createReview(orderId: string, rating: number, comment: string): Promise<void>
   adminListOrders(): Promise<Order[]>
   adminMarkPayout(id: string): Promise<void>
   // Admin
   adminStats(): Promise<AdminStats>
   adminListVitrines(): Promise<Vitrine[]>
-  adminUpdateVitrine(id: string, patch: Partial<Pick<Vitrine, 'status' | 'is_premium' | 'premium_until'>>): Promise<void>
+  adminUpdateVitrine(id: string, patch: Partial<Pick<Vitrine, 'status' | 'is_premium' | 'premium_until' | 'verified'>>): Promise<void>
   adminListRequests(): Promise<PremiumRequest[]>
   adminResolveRequest(id: string, status: 'approved' | 'rejected'): Promise<void>
   saveCategory(c: Partial<Category> & { type: VitrineType; name: string }): Promise<void>

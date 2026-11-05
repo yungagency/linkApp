@@ -5,7 +5,7 @@
  */
 import { APP } from '../config'
 import { canMove, type Actor } from './orders'
-import type { Api, Category, Item, Order, OrderEvent, Profile, PremiumRequest, Vitrine, VitrineType } from './types'
+import type { Api, Category, Item, Order, OrderEvent, Profile, PremiumRequest, Review, Vitrine, VitrineType } from './types'
 import { compressImage, slugify, uid } from './utils'
 
 interface DemoUser extends Profile { email: string; password: string }
@@ -19,6 +19,8 @@ interface DB {
   orders: Order[]
   events: OrderEvent[]
   secrets: Record<string, string>
+  contacts: { vitrine_id: string; channel: string; created_at: string }[]
+  reviews: Review[]
 }
 
 const KEY = 'linkapp-demo-v3'
@@ -48,6 +50,7 @@ function seed(): DB {
     id: `v-${n}`, owner_id: owner(n), type, name, slug: slugify(name), description, category_id: cat(category),
     city: 'Bafoussam', district, phone: '', whatsapp: '', cover_url: null, logo_url: null, status: 'active',
     is_premium: premium, premium_until: null, views, created_at: now(),
+    verified: premium, rating_avg: 0, rating_count: 0,
   })
   const vitrines = [
     v(1, 'agriculture', 'La Ferme Bio', 'Légumes', 'Tamdja', 'Produits frais de saison, cultivés sans pesticides.', true, 1240),
@@ -71,7 +74,7 @@ function seed(): DB {
     it('v-6', 'Maïs sec', 350, 'le kg', 'Sac de 50 kg disponible.'), it('v-6', 'Manioc', 15000, 'le sac'),
     it('v-6', 'Igname', 20000, 'le sac', '', false),
   ]
-  return { users, session: null, categories, vitrines, items, requests: [], orders: [], events: [], secrets: {} }
+  return { users, session: null, categories, vitrines, items, requests: [], orders: [], events: [], secrets: {}, contacts: [], reviews: [] }
 }
 
 function load(): DB {
@@ -79,7 +82,8 @@ function load(): DB {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const d = JSON.parse(raw) as DB
-      d.orders ??= []; d.events ??= []; d.secrets ??= {}
+      d.orders ??= []; d.events ??= []; d.secrets ??= {}; d.contacts ??= []; d.reviews ??= []
+      d.vitrines.forEach((v) => { v.verified ??= false; v.rating_avg ??= 0; v.rating_count ??= 0 })
       d.items.forEach((i) => { i.delivery_days ??= 2 })
       d.orders.forEach((o) => { o.protected ??= true; o.delivery_days ??= 2; o.deliver_by ??= null; o.delivery_verified ??= false })
       return d
@@ -88,7 +92,7 @@ function load(): DB {
   return seed()
 }
 
-export function createDemoApi(): Api {
+export function createDemoApi(): Api & { demoGatewayPay(orderId: string): Promise<void> } {
   let db = load()
   const listeners = new Set<() => void>()
   const save = () => {
@@ -158,7 +162,7 @@ export function createDemoApi(): Api {
       if (o.type) r = r.filter((v) => v.type === o.type)
       if (o.categoryId) r = r.filter((v) => v.category_id === o.categoryId)
       if (o.q) r = r.filter((v) => match(o.q!, v.name, v.description, v.city, v.district))
-      r.sort((a, b) => Number(b.is_premium) - Number(a.is_premium) || b.created_at.localeCompare(a.created_at))
+      r.sort((a, b) => Number(b.is_premium) - Number(a.is_premium) || b.rating_count - a.rating_count || b.created_at.localeCompare(a.created_at))
       return delay(o.limit ? r.slice(0, o.limit) : r)
     },
     async getVitrineBySlug(slug) {
@@ -202,7 +206,7 @@ export function createDemoApi(): Api {
     async saveVitrine(input) {
       const u = needMe()
       const existing = input.id ? db.vitrines.find((v) => v.id === input.id) : undefined
-      const { status: _s, is_premium: _p, premium_until: _u, views: _v, ...rest } = input
+      const { status: _s, is_premium: _p, premium_until: _u, views: _v, verified: _ve, rating_avg: _ra, rating_count: _rc, ...rest } = input
       if (existing) {
         if (existing.owner_id !== u.id && u.role !== 'admin') throw new Error('Action non autorisée')
         Object.assign(existing, rest); save(); return delay(existing)
@@ -211,7 +215,7 @@ export function createDemoApi(): Api {
       const v: Vitrine = {
         id: uid(), owner_id: u.id, slug: `${slugify(input.name)}-${uid().slice(0, 4)}`, description: '', category_id: null,
         city: '', district: '', phone: '', whatsapp: '', cover_url: null, logo_url: null, created_at: now(),
-        ...rest, status: 'active', is_premium: false, premium_until: null, views: 0,
+        ...rest, status: 'active', is_premium: false, premium_until: null, views: 0, verified: false, rating_avg: 0, rating_count: 0,
       } as Vitrine
       db.vitrines.push(v)
       if (u.role === 'visitor') u.role = 'pro'
@@ -256,17 +260,20 @@ export function createDemoApi(): Api {
       const v = db.vitrines.find((x) => x.id === it.vitrine_id && x.status === 'active')
       if (!v) throw new Error('Vitrine indisponible')
       if (v.owner_id === u.id) throw new Error('Vous ne pouvez pas commander dans votre propre vitrine')
-      if (!o.address.trim() || !o.buyer_phone.trim()) throw new Error('Adresse et téléphone de livraison obligatoires')
+      if (!o.buyer_phone.trim() || (o.zone !== 'pickup' && !o.address.trim())) throw new Error('Adresse et téléphone de livraison obligatoires')
       const q = Math.max(1, Math.min(999, Math.round(o.quantity)))
       const subtotal = it.price * q
+      if (o.protected && !v.verified) throw new Error('LinkApp Assurance est réservée aux vendeurs vérifiés')
+      if (o.protected && subtotal > APP.assuranceMax) throw new Error(`Montant au-delà du plafond de LinkApp Assurance (${APP.assuranceMax} FCFA)`)
       const rate = o.protected ? APP.commissionRate : 0
       const commission = Math.round(subtotal * rate)
-      const days = it.delivery_days ?? 2
+      const days = (it.delivery_days ?? 2) + (o.zone === 'intercity' ? APP.intercityExtraDays : 0)
       const order: Order = {
         id: uid(), code: 'LK-' + uid().replace(/-/g, '').slice(0, 6).toUpperCase(), buyer_id: u.id, vitrine_id: v.id,
         item_id: it.id, item_title: it.title, item_image: it.image_url, unit: it.unit, unit_price: it.price, quantity: q,
         subtotal, commission_rate: rate, commission, seller_amount: subtotal - commission,
-        buyer_name: o.buyer_name, buyer_phone: o.buyer_phone, address: o.address, note: o.note,
+        buyer_name: o.buyer_name, buyer_phone: o.buyer_phone, address: o.address.trim() || 'Retrait chez le vendeur', note: o.note,
+        delivery_zone: o.zone ?? 'city', gateway_tx: null,
         status: o.protected ? 'pending_payment' : 'placed', protected: o.protected, delivery_days: days,
         deliver_by: o.protected ? null : addDays(Math.max(days, 1)), delivery_verified: false,
         payment_method: null, payment_ref: null, dispute_reason: null, delivered_at: null,
@@ -339,6 +346,58 @@ export function createDemoApi(): Api {
       const u = me()
       const o = db.orders.find((x) => x.id === id)
       return delay(u && o && o.buyer_id === u.id ? db.secrets[id] ?? null : null)
+    },
+    async startPayment(orderId) {
+      const u = needMe()
+      const o = db.orders.find((x) => x.id === orderId)
+      if (!o || o.buyer_id !== u.id || o.status !== 'pending_payment') throw new Error('Cette commande n’est plus en attente de paiement')
+      o.gateway_tx = `${o.code}-DEMO`; save()
+      // Mode démo : page de paiement simulée dans l'app (en production, c'est la page CinetPay)
+      return { payment_url: `#/paiement-demo/${o.id}` }
+    },
+    async checkPayment(orderId) {
+      const o = db.orders.find((x) => x.id === orderId)
+      return o && !['pending_payment', 'payment_submitted'].includes(o.status) ? 'ACCEPTED' : 'WAITING_FOR_CUSTOMER'
+    },
+    async logContact(vitrineId, channel) {
+      db.contacts.push({ vitrine_id: vitrineId, channel, created_at: now() }); save()
+    },
+    async contactStats(vitrineId) {
+      const since = Date.now() - 30 * 864e5
+      const all = db.contacts.filter((c) => c.vitrine_id === vitrineId)
+      return delay({ month: all.filter((c) => new Date(c.created_at).getTime() >= since).length, total: all.length })
+    },
+    async listReviews(vitrineId) {
+      return delay(db.reviews.filter((r) => r.vitrine_id === vitrineId))
+    },
+    async orderReview(orderId) {
+      return delay(db.reviews.find((r) => r.order_id === orderId) ?? null)
+    },
+    async createReview(orderId, rating, comment) {
+      const u = needMe()
+      const o = db.orders.find((x) => x.id === orderId)
+      if (!o || o.buyer_id !== u.id) throw new Error('Commande introuvable')
+      if (o.status !== 'completed') throw new Error('Vous pourrez noter le vendeur une fois la commande terminée')
+      if (db.reviews.some((r) => r.order_id === orderId)) throw new Error('Vous avez déjà noté cette commande')
+      const r = Math.max(1, Math.min(5, Math.round(rating)))
+      db.reviews.unshift({ id: uid(), order_id: orderId, vitrine_id: o.vitrine_id, buyer_name: o.buyer_name.split(' ')[0] ?? 'Client',
+        item_title: o.item_title, rating: r, comment, created_at: now() })
+      const v = db.vitrines.find((x) => x.id === o.vitrine_id)
+      if (v) {
+        const list = db.reviews.filter((x) => x.vitrine_id === v.id)
+        v.rating_count = list.length
+        v.rating_avg = Math.round((list.reduce((a, x) => a + x.rating, 0) / list.length) * 10) / 10
+      }
+      save()
+    },
+    /** Démo seulement : simule la confirmation CinetPay. */
+    async demoGatewayPay(orderId: string) {
+      const o = db.orders.find((x) => x.id === orderId)
+      if (!o || !['pending_payment', 'payment_submitted'].includes(o.status)) return
+      o.status = 'paid'; o.payment_method = 'cinetpay'; o.payment_ref = o.gateway_tx
+      o.deliver_by = addDays(Math.max(o.delivery_days, 1)); o.updated_at = now()
+      db.events.push({ id: uid(), order_id: o.id, status: 'paid', actor: 'admin', note: 'Paiement confirmé par CinetPay (simulation)', attachments: [], created_at: now() })
+      save()
     },
     async adminListOrders() {
       needAdmin()

@@ -74,6 +74,7 @@ export function Account() {
         <div className="card menu">
           {profile && <a href="#/commandes"><span className="ic"><Icon name="box" size={18} /></span><span className="grow">Mes commandes</span><Icon name="chevron" className="muted" /></a>}
           <a href="#/favoris"><span className="ic"><Icon name="heart" size={18} /></span><span className="grow">Mes favoris</span><Icon name="chevron" className="muted" /></a>
+          <a href="#/regles"><span className="ic"><Icon name="shield" size={18} /></span><span className="grow">LinkApp Assurance : les règles</span><Icon name="chevron" className="muted" /></a>
           {profile && (
             <button onClick={() => { setF({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' }); setEdit(true) }}>
               <span className="ic"><Icon name="edit" size={18} /></span><span className="grow">Modifier mes informations</span>

@@ -16,6 +16,12 @@ export const APP = {
   commissionRate: 0.05,
   /** Nom de l'offre de protection (un seul endroit à changer si besoin, voir l'analyse sur le mot « assurance ») */
   protectionName: 'LinkApp Assurance',
+  /** Paiement en ligne : 'cinetpay' (recommandé) ou 'manual' (référence Mobile Money vérifiée par l'admin) */
+  paymentProvider: 'cinetpay' as 'cinetpay' | 'manual',
+  /** Plafond d'une commande assurée, en FCFA (À DÉCIDER) — aussi dans la table settings côté serveur */
+  assuranceMax: 100000,
+  /** Jours ajoutés au délai pour une livraison dans une autre ville (agence de voyage) */
+  intercityExtraDays: 3,
 }
 
 export const TYPES: Record<VitrineType, {

@@ -1,6 +1,13 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Api, Category, Item, ItemHit, Order, OrderEvent, PremiumRequest, Profile, Vitrine } from './types'
+import type { Api, Category, Item, ItemHit, Order, OrderEvent, PremiumRequest, Profile, Review, Vitrine } from './types'
 import { compressImage, slugify, uid } from './utils'
+
+/** Message d'erreur lisible renvoyé par une fonction serveur. */
+async function fnError(e: unknown): Promise<string> {
+  const ctx = (e as { context?: Response })?.context
+  try { const j = await ctx?.json(); if (j?.error) return j.error } catch { /* corps vide */ }
+  return 'Le service de paiement ne répond pas. Réessayez dans un instant.'
+}
 
 const ORDER_SELECT = '*, vitrine:vitrines(id,name,slug,type,phone,whatsapp)'
 
@@ -49,7 +56,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
     async listVitrines(o = {}) {
       let q = sb.from('vitrines').select('*').eq('status', 'active')
-        .order('is_premium', { ascending: false }).order('created_at', { ascending: false })
+        .order('is_premium', { ascending: false }).order('rating_count', { ascending: false }).order('created_at', { ascending: false })
       if (o.type) q = q.eq('type', o.type)
       if (o.categoryId) q = q.eq('category_id', o.categoryId)
       if (o.q) {
@@ -129,7 +136,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async createOrder(o) {
       const r = await sb.rpc('create_order', {
         p_item_id: o.item_id, p_quantity: o.quantity, p_buyer_name: o.buyer_name,
-        p_buyer_phone: o.buyer_phone, p_address: o.address, p_note: o.note, p_protected: o.protected,
+        p_buyer_phone: o.buyer_phone, p_address: o.address, p_note: o.note, p_protected: o.protected, p_zone: o.zone,
       })
       return must(r) as Order
     },
@@ -168,6 +175,37 @@ export function createSupabaseApi(url: string, key: string): Api {
     async getDeliveryCode(oid) {
       const r = await sb.from('order_secrets').select('delivery_code').eq('order_id', oid).maybeSingle()
       return (r.data?.delivery_code as string | undefined) ?? null
+    },
+    async startPayment(orderId) {
+      const { data, error } = await sb.functions.invoke('cinetpay', { body: { action: 'init', order_id: orderId } })
+      if (error) throw new Error(await fnError(error))
+      if (data?.error) throw new Error(data.error)
+      return data as { payment_url: string }
+    },
+    async checkPayment(orderId) {
+      const { data, error } = await sb.functions.invoke('cinetpay', { body: { action: 'check', order_id: orderId } })
+      if (error) throw new Error(await fnError(error))
+      return String(data?.status ?? 'UNKNOWN')
+    },
+    async logContact(vitrineId, channel, itemId) {
+      await sb.rpc('log_contact', { p_vitrine_id: vitrineId, p_channel: channel, p_item_id: itemId ?? null })
+    },
+    async contactStats(vitrineId) {
+      const since = new Date(Date.now() - 30 * 864e5).toISOString()
+      const [m, t] = await Promise.all([
+        sb.from('contact_clicks').select('*', { count: 'exact', head: true }).eq('vitrine_id', vitrineId).gte('created_at', since),
+        sb.from('contact_clicks').select('*', { count: 'exact', head: true }).eq('vitrine_id', vitrineId),
+      ])
+      return { month: m.count ?? 0, total: t.count ?? 0 }
+    },
+    async listReviews(vitrineId) {
+      return must(await sb.from('reviews').select('*').eq('vitrine_id', vitrineId).order('created_at', { ascending: false }).limit(50)) as Review[]
+    },
+    async orderReview(orderId) {
+      return must(await sb.from('reviews').select('*').eq('order_id', orderId).maybeSingle()) as Review | null
+    },
+    async createReview(orderId, rating, comment) {
+      must(await sb.rpc('create_review', { p_order_id: orderId, p_rating: rating, p_comment: comment }))
     },
     async adminListOrders() {
       return must(await sb.from('orders').select(ORDER_SELECT).order('created_at', { ascending: false }).limit(500)) as Order[]

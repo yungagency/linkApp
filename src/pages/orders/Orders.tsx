@@ -1,14 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
-import { Empty, Media, Skeleton, TopBar, toast, useLoad } from '../../components/ui'
+import { Empty, Media, Skeleton, Stars, TopBar, toast, useLoad } from '../../components/ui'
 import { APP } from '../../config'
-import { api } from '../../lib/api'
+import { api, demoGateway } from '../../lib/api'
 import {
   CONFIRM_DAYS, HELD, STATUS, canMove, deliveryLabel, isLate, stepIndex, stepsFor, type OrderStatus,
 } from '../../lib/orders'
 import { navigate } from '../../lib/router'
 import { useSession } from '../../lib/session'
-import type { Item, Order, OrderEvent, OrderMove } from '../../lib/types'
+import type { DeliveryZone, Item, Order, OrderEvent, OrderMove, Review } from '../../lib/types'
 import { errorMessage, formatPrice, intlPhone, waLink } from '../../lib/utils'
 
 const fcfa = (n: number) => formatPrice(n)
@@ -83,6 +83,7 @@ export function Checkout({ slug, itemId, mode }: { slug: string; itemId: string;
   }, [slug, itemId])
   const [qty, setQty] = useState(1)
   const [secure, setSecure] = useState(mode !== 'direct')
+  const [zone, setZone] = useState<DeliveryZone>('city')
   const [f, setF] = useState({ buyer_name: profile?.full_name ?? '', buyer_phone: profile?.phone ?? '', address: '', note: '' })
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -94,13 +95,16 @@ export function Checkout({ slug, itemId, mode }: { slug: string; itemId: string;
 
   const total = item.price * qty
   const svc = v.type === 'service'
+  const secureBlock = !v.verified ? 'Vendeur pas encore vérifié par LinkApp' : total > APP.assuranceMax ? `Au-delà du plafond de ${fcfa(APP.assuranceMax)}` : ''
+  const useSecure = secure && !secureBlock
+  const days = item.delivery_days + (zone === 'intercity' ? APP.intercityExtraDays : 0)
   return (
     <>
       <TopBar back={`/v/${slug}`} title="Commander" />
       <form className="page stack" onSubmit={async (e) => {
         e.preventDefault(); setErr(''); setBusy(true)
         try {
-          const o = await api.createOrder({ item_id: item.id, quantity: qty, ...f, protected: secure })
+          const o = await api.createOrder({ item_id: item.id, quantity: qty, ...f, protected: useSecure, zone })
           toast('Commande créée')
           navigate('/commande/' + o.id, true)
         } catch (x) { setErr(errorMessage(x)) } finally { setBusy(false) }
@@ -118,32 +122,40 @@ export function Checkout({ slug, itemId, mode }: { slug: string; itemId: string;
             <button type="button" onClick={() => setQty(Math.min(999, qty + 1))} aria-label="Plus">+</button>
           </div>
         </div>
-        <p className="row small muted" style={{ gap: 6 }}><Icon name="truck" size={16} />{svc ? 'Réalisation' : 'Livraison'} promise par le vendeur : <b style={{ color: 'var(--ink)' }}>{deliveryLabel(item.delivery_days)}</b></p>
+        {!svc && (
+          <div className="zone-opts" role="radiogroup" aria-label="Zone de livraison">
+            {([['city', 'En ville', v.city || 'Même ville'], ['intercity', 'Autre ville', 'Par agence de voyage'], ['pickup', 'Retrait', 'Chez le vendeur']] as const).map(([k, l, s]) => (
+              <button key={k} type="button" className={zone === k ? 'on' : ''} onClick={() => setZone(k)}>{l}<small>{s}</small></button>
+            ))}
+          </div>
+        )}
+        <p className="row small muted" style={{ gap: 6 }}><Icon name="truck" size={16} /><span>{svc ? 'Réalisation' : zone === 'pickup' ? 'Disponible' : 'Livraison'} promise : <b style={{ color: 'var(--ink)' }}>{deliveryLabel(days)}</b>{zone === 'intercity' && <> (dont {APP.intercityExtraDays} j de transport)</>}</span></p>
 
         {/* Le choix du client : avec ou sans assurance */}
         <h3 style={{ marginTop: 6 }}>Comment voulez-vous acheter ?</h3>
-        <button type="button" className={'choice ' + (secure ? 'on' : '')} onClick={() => setSecure(true)}>
+        <button type="button" className={'choice ' + (useSecure ? 'on' : '')} disabled={!!secureBlock} onClick={() => setSecure(true)}>
           <span className="choice-ic secure"><Icon name="shield" size={20} /></span>
           <span className="grow">
             <b>Avec {NAME}</b> <span className="badge secure" style={{ marginLeft: 4 }}>Recommandé</span><br />
-            <span className="small muted">Vous payez maintenant par Mobile Money. L’argent est bloqué par LinkApp et versé au vendeur après votre confirmation. Retard ou problème : remboursement après examen.</span>
+            <span className="small muted">{secureBlock ? `Indisponible : ${secureBlock}.` : 'Vous payez maintenant par Mobile Money. L’argent est bloqué par LinkApp et versé au vendeur après votre confirmation. Retard ou problème : remboursement après examen.'}</span>
           </span>
-          <span className={'radio ' + (secure ? 'on' : '')} />
+          <span className={'radio ' + (useSecure ? 'on' : '')} />
         </button>
-        <button type="button" className={'choice ' + (!secure ? 'on' : '')} onClick={() => setSecure(false)}>
+        <button type="button" className={'choice ' + (!useSecure ? 'on' : '')} onClick={() => setSecure(false)}>
           <span className="choice-ic"><Icon name="chat" size={20} /></span>
           <span className="grow">
             <b>Sans assurance</b><br />
             <span className="small muted">Vous payez le vendeur directement, à la livraison ou comme convenu avec lui. LinkApp suit la commande mais ne peut pas vous rembourser.</span>
           </span>
-          <span className={'radio ' + (!secure ? 'on' : '')} />
+          <span className={'radio ' + (!useSecure ? 'on' : '')} />
         </button>
 
-        <h3 style={{ marginTop: 8 }}>{svc ? 'Lieu de la prestation' : 'Livraison'}</h3>
+        <p className="tiny muted"><a className="link" href="#/regles">Comment fonctionne {NAME} ?</a></p>
+        <h3 style={{ marginTop: 8 }}>{svc ? 'Lieu de la prestation' : zone === 'pickup' ? 'Vos coordonnées' : 'Livraison'}</h3>
         <label className="field"><span>Nom</span><input className="input" required value={f.buyer_name} onChange={(e) => setF({ ...f, buyer_name: e.target.value })} /></label>
         <label className="field"><span>Téléphone</span><input className="input" type="tel" inputMode="tel" required value={f.buyer_phone} onChange={(e) => setF({ ...f, buyer_phone: e.target.value })} /></label>
         <label className="field"><span>Adresse précise</span>
-          <textarea className="textarea" required style={{ minHeight: 70 }} placeholder="Quartier, repère (ex : Tamdja, derrière la pharmacie…)" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+          <textarea className="textarea" required={zone !== 'pickup'} style={{ minHeight: 70 }} placeholder={zone === 'intercity' ? 'Ville et agence de voyage souhaitée (ex : Douala, agence Buca Voyages)' : zone === 'pickup' ? 'Facultatif' : 'Quartier, repère (ex : Tamdja, derrière la pharmacie…)'} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
         </label>
         <label className="field"><span>Message au vendeur (facultatif)</span>
           <input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Heure de livraison souhaitée…" />
@@ -151,16 +163,16 @@ export function Checkout({ slug, itemId, mode }: { slug: string; itemId: string;
 
         <div className="card pad stack">
           <div className="row between small"><span className="muted">{qty} × {formatPrice(item.price)}</span><span>{fcfa(total)}</span></div>
-          <div className="row between small"><span className="muted">{NAME}</span>{secure ? <span className="ok-text">Incluse</span> : <span className="muted">Non</span>}</div>
+          <div className="row between small"><span className="muted">{NAME}</span>{useSecure ? <span className="ok-text">Incluse</span> : <span className="muted">Non</span>}</div>
           <div className="row between" style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-            <b>{secure ? 'Total à payer maintenant' : 'Total à payer au vendeur'}</b><b className="price" style={{ fontSize: 18 }}>{fcfa(total)}</b>
+            <b>{useSecure ? 'Total à payer maintenant' : 'Total à payer au vendeur'}</b><b className="price" style={{ fontSize: 18 }}>{fcfa(total)}</b>
           </div>
         </div>
         {err && <p className="alert err">{err}</p>}
         <button className="btn block" disabled={busy}>
-          <Icon name={secure ? 'shield' : 'check'} size={18} />{busy ? 'Création…' : secure ? `Acheter avec ${NAME}` : 'Envoyer la commande'}
+          <Icon name={useSecure ? 'shield' : 'check'} size={18} />{busy ? 'Création…' : useSecure ? `Acheter avec ${NAME}` : 'Envoyer la commande'}
         </button>
-        <p className="tiny muted center">{secure ? 'Le paiement Mobile Money se fait à l’étape suivante.' : 'Le vendeur confirme la commande, puis vous livre.'}</p>
+        <p className="tiny muted center">{useSecure ? 'Le paiement Mobile Money se fait à l’étape suivante.' : 'Le vendeur confirme la commande, puis vous livre.'}</p>
       </form>
     </>
   )
@@ -221,6 +233,21 @@ export function OrderDetail({ id }: { id: string }) {
   const [zoom, setZoom] = useState<string | null>(null)
   const role = d.data?.role
   useEffect(() => { if (role === 'buyer') api.getDeliveryCode(id).then(setCode) }, [id, role])
+  const review = useLoad(() => (role === 'buyer' ? api.orderReview(id) : Promise.resolve(null as Review | null)), [id, role, d.data?.order.status])
+  const [stars, setStars] = useState(5)
+  const [comment, setComment] = useState('')
+  // Retour de la page CinetPay : on revérifie le paiement quelques fois (la notification peut arriver avec un léger délai)
+  const pendingTx = d.data?.role === 'buyer' && d.data.order.status === 'pending_payment' && !!d.data.order.gateway_tx
+  const [checks, setChecks] = useState(0)
+  useEffect(() => {
+    if (!pendingTx || checks >= 6) return
+    const t = setTimeout(async () => {
+      try { if ((await api.checkPayment(id)) === 'ACCEPTED') { toast('Paiement confirmé, argent sécurisé'); d.reload() } } catch { /* on réessaie */ }
+      setChecks((c) => c + 1)
+    }, checks === 0 ? 800 : 4000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTx, checks, id])
 
   if (d.loading && !d.data) return <><TopBar back title="Commande" /><div className="page stack"><Skeleton h={120} /><Skeleton h={220} /></div></>
   if (!d.data) return <><TopBar back="/" title="Commande" /><Empty title="Commande introuvable" /></>
@@ -316,7 +343,7 @@ export function OrderDetail({ id }: { id: string }) {
           <section className="card pad stack dispute-box">
             <h3 className="row" style={{ gap: 6 }}><Icon name="bell" size={18} />Litige en cours</h3>
             <p className="small">Motif : « {o.dispute_reason} »</p>
-            <p className="tiny muted">L’argent reste bloqué. Le client et le vendeur déposent leurs preuves ; LinkApp tranche sous 72 h.</p>
+            <p className="tiny muted">L’argent reste bloqué. Le client et le vendeur déposent leurs preuves ; LinkApp tranche sous 72 h. <a className="link" href="#/regles">Voir les règles</a></p>
             {form.kind === 'evidence' ? <>
               <textarea className="textarea" style={{ minHeight: 70 }} placeholder={r === 'seller' ? 'Votre version : date de remise, livreur, état de l’article…' : 'Précisez : ce qui manque, ce qui est abîmé…'}
                 value={form.text} onChange={(e) => set({ text: e.target.value })} />
@@ -335,6 +362,25 @@ export function OrderDetail({ id }: { id: string }) {
 
         {ActionPanel()}
 
+        {r === 'buyer' && o.status === 'completed' && !review.loading && (review.data ? (
+          <section className="card pad">
+            <p className="tiny muted">Votre avis</p>
+            <div className="row" style={{ gap: 8, marginTop: 4 }}><Stars value={review.data.rating} /><span className="small">{review.data.comment}</span></div>
+          </section>
+        ) : (
+          <section className="card pad stack action-box">
+            <h3>Notez {o.vitrine?.name ?? 'le vendeur'}</h3>
+            <p className="tiny muted">Votre avis apparaîtra comme « Achat vérifié » sur sa vitrine.</p>
+            <Stars value={stars} size={30} onPick={setStars} />
+            <textarea className="textarea" style={{ minHeight: 64 }} placeholder="Qualité, respect du délai, accueil…" value={comment} onChange={(e) => setComment(e.target.value)} />
+            <button className="btn block" disabled={busy} onClick={async () => {
+              setBusy(true)
+              try { await api.createReview(o.id, stars, comment.trim()); toast('Merci pour votre avis'); review.reload() }
+              catch (x) { toast(errorMessage(x)) } finally { setBusy(false) }
+            }}>Publier mon avis</button>
+          </section>
+        ))}
+
         {/* Article */}
         <section className="card pad row">
           <div style={{ width: 56, height: 56, borderRadius: 12, overflow: 'hidden', flexShrink: 0 }}><Media src={o.item_image} type={type} label={o.item_title} /></div>
@@ -347,13 +393,27 @@ export function OrderDetail({ id }: { id: string }) {
 
         <section className="card pad stack small">
           <h3>{svc ? 'Lieu de la prestation' : 'Livraison'}</h3>
+          <p className="row" style={{ gap: 6 }}><span className="badge">{o.delivery_zone === 'intercity' ? 'Autre ville · agence' : o.delivery_zone === 'pickup' ? 'Retrait chez le vendeur' : 'En ville'}</span></p>
           <p><b>{o.buyer_name}</b> · {o.buyer_phone}</p>
           <p className="muted">{o.address}</p>
           {o.note && <p className="muted">« {o.note} »</p>}
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {r !== 'buyer' && o.buyer_phone && <a className="btn ghost sm" href={`tel:+${intlPhone(o.buyer_phone)}`}><Icon name="phone" size={16} />Appeler le client</a>}
-            {r !== 'seller' && o.vitrine && (o.vitrine.whatsapp || o.vitrine.phone) && (
-              <a className="btn ghost sm" target="_blank" rel="noreferrer" href={waLink(o.vitrine.whatsapp || o.vitrine.phone, `Bonjour, à propos de ma commande ${o.code} sur LinkApp.`)}><Icon name="chat" size={16} />Écrire au vendeur</a>
+            {r === 'buyer' && o.vitrine && (o.vitrine.whatsapp || o.vitrine.phone) && (
+              <a className={'btn sm ' + (['placed', 'paid'].includes(o.status) ? 'green' : 'ghost')} target="_blank" rel="noreferrer"
+                href={waLink(o.vitrine.whatsapp || o.vitrine.phone, ['placed', 'paid'].includes(o.status)
+                  ? `Bonjour, je viens de passer la commande ${o.code} sur LinkApp (${o.item_title}). Merci de la confirmer dans l’application.`
+                  : `Bonjour, à propos de ma commande ${o.code} sur LinkApp.`)}>
+                <Icon name="chat" size={16} />{['placed', 'paid'].includes(o.status) ? 'Prévenir le vendeur' : 'Écrire au vendeur'}
+              </a>
+            )}
+            {r === 'seller' && o.buyer_phone && ['preparing', 'shipped', 'delivered'].includes(o.status) && (
+              <a className="btn green sm" target="_blank" rel="noreferrer"
+                href={waLink(o.buyer_phone, o.status === 'preparing' ? `Bonjour ${o.buyer_name.split(' ')[0]}, votre commande ${o.code} (LinkApp) est en préparation.`
+                  : o.status === 'shipped' ? `Bonjour ${o.buyer_name.split(' ')[0]}, votre commande ${o.code} (LinkApp) est en route. Gardez votre code de réception pour le livreur.`
+                  : `Bonjour ${o.buyer_name.split(' ')[0]}, votre commande ${o.code} a été livrée. Merci de confirmer la réception dans LinkApp.`)}>
+                <Icon name="chat" size={16} />Prévenir le client
+              </a>
             )}
           </div>
         </section>
@@ -402,6 +462,23 @@ export function OrderDetail({ id }: { id: string }) {
 
     // ---------- CLIENT ----------
     if (r === 'buyer') {
+      if (o.status === 'pending_payment' && APP.paymentProvider === 'cinetpay') {
+        return box(<>
+          <h3>Payer {fcfa(o.subtotal)}</h3>
+          <p className="small muted">Paiement sécurisé par <b>CinetPay</b> : Orange Money ou MTN Mobile Money. L’argent est ensuite bloqué par LinkApp jusqu’à votre confirmation de réception.</p>
+          {o.gateway_tx && checks < 6 && <p className="alert info small">Paiement en cours de confirmation… Si vous avez validé sur votre téléphone, patientez quelques secondes.</p>}
+          <button className="btn block" disabled={busy} onClick={async () => {
+            setBusy(true)
+            try {
+              const { payment_url } = await api.startPayment(o.id)
+              if (payment_url.startsWith('#')) location.hash = payment_url.slice(1)
+              else location.href = payment_url
+            } catch (x) { toast(errorMessage(x)); setBusy(false) }
+          }}><Icon name="shield" size={18} />{busy ? 'Ouverture de CinetPay…' : o.gateway_tx ? 'Réessayer le paiement' : 'Payer avec Mobile Money'}</button>
+          {o.gateway_tx && <button className="btn ghost block" onClick={() => setChecks(0)}>J’ai payé, vérifier</button>}
+          <button className="link" onClick={() => move('cancelled', { note: 'Annulée par le client' }, 'Commande annulée', 'Annuler cette commande ?')}>Annuler la commande</button>
+        </>)
+      }
       if (o.status === 'pending_payment') {
         const nums = APP.paymentNumbers
         return box(<>
@@ -519,4 +596,34 @@ export function OrderDetail({ id }: { id: string }) {
 /** Nombre de commandes à traiter par le vendeur (pour les pastilles). */
 export function sellerTodo(list: Order[]) {
   return list.filter((o) => ['placed', 'paid', 'preparing', 'shipped'].includes(o.status)).length
+}
+
+/* =====================================================================
+   Mode démo : imitation de la page CinetPay (en production, le client
+   est envoyé sur la vraie page de paiement CinetPay)
+   ===================================================================== */
+export function DemoPayment({ id }: { id: string }) {
+  const d = useLoad(() => api.getOrder(id), [id])
+  const [busy, setBusy] = useState(false)
+  const o = d.data?.order
+  return (
+    <div className="gw-page">
+      <div className="card pad stack" style={{ width: '100%', maxWidth: 380 }}>
+        <p className="tiny muted center" style={{ letterSpacing: '.16em', textTransform: 'uppercase', fontWeight: 600 }}>Simulation · page CinetPay</p>
+        <h2 className="center">{o ? fcfa(Math.ceil(o.subtotal / 5) * 5) : '…'}</h2>
+        <p className="small muted center">{o ? `Commande ${o.code} LinkApp` : ''}</p>
+        <div className="grid-2">
+          <div className="pay-opt on"><b>Orange Money</b><span className="tiny muted">Simulation</span></div>
+          <div className="pay-opt"><b>MTN MoMo</b><span className="tiny muted">Simulation</span></div>
+        </div>
+        <button className="btn green block" disabled={busy || !o || !demoGateway} onClick={async () => {
+          setBusy(true)
+          await demoGateway?.demoGatewayPay(id)
+          navigate(`/commande/${id}?retour=cinetpay`, true)
+        }}>Valider le paiement</button>
+        <button className="link" onClick={() => navigate(`/commande/${id}`, true)}>Annuler et revenir</button>
+        <p className="tiny muted center">En production, le client valide le paiement sur son téléphone (code secret Mobile Money).</p>
+      </div>
+    </div>
+  )
 }
