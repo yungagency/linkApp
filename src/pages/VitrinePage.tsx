@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon'
 import { Empty, ItemCard, Media, PremiumBadge, Skeleton, TypeBadge, toast, useFavs, useLoad } from '../components/ui'
 import { TYPES } from '../config'
 import { api } from '../lib/api'
+import { ProtectionNote } from './orders/Orders'
 import type { Item, VitrineType } from '../lib/types'
 import { formatPrice, intlPhone, isPremiumActive, waLink } from '../lib/utils'
 
@@ -85,13 +86,13 @@ export default function VitrinePage({ slug }: { slug: string }) {
         </div>
       )}
 
-      {open && <ItemSheet item={open} vitrineName={s.name} type={s.type} phone={phone} onClose={() => setOpen(null)} />}
+      {open && <ItemSheet item={open} slug={s.slug} vitrineName={s.name} type={s.type} phone={phone} onClose={() => setOpen(null)} />}
     </div>
   )
 }
 
-function ItemSheet({ item, vitrineName, type, phone, onClose }:
-  { item: Item; vitrineName: string; type: VitrineType; phone: string; onClose: () => void }) {
+function ItemSheet({ item, slug, vitrineName, type, phone, onClose }:
+  { item: Item; slug: string; vitrineName: string; type: VitrineType; phone: string; onClose: () => void }) {
   return (
     <div role="dialog" aria-modal="true" onClick={onClose}
       style={{ position: 'fixed', inset: 0, background: 'rgba(11,18,32,.5)', zIndex: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -108,10 +109,16 @@ function ItemSheet({ item, vitrineName, type, phone, onClose }:
           </div>
           <p className="price" style={{ fontSize: 18 }}>{formatPrice(item.price, item.unit)}</p>
           {item.description && <p style={{ color: 'var(--ink-2)' }}>{item.description}</p>}
+          {item.available && item.price != null && (
+            <>
+              <a className="btn block" href={`#/commander/${slug}/${item.id}`}><Icon name="shield" size={18} />Acheter avec protection</a>
+              <ProtectionNote compact />
+            </>
+          )}
           {phone && (
-            <a className="btn green block" target="_blank" rel="noreferrer"
+            <a className="btn ghost block" target="_blank" rel="noreferrer"
               href={waLink(phone, `Bonjour ${vitrineName}, je suis intéressé(e) par « ${item.title} » vu sur LinkApp. Est-ce disponible ?`)}>
-              <Icon name="chat" size={18} />Commander sur WhatsApp
+              <Icon name="chat" size={18} />Poser une question sur WhatsApp
             </a>
           )}
         </div>

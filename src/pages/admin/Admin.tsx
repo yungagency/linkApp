@@ -4,11 +4,14 @@ import { Logo, Media, Skeleton, TypeBadge, toast, useLoad } from '../../componen
 import { TYPES } from '../../config'
 import { api } from '../../lib/api'
 import type { Vitrine, VitrineType } from '../../lib/types'
-import { errorMessage, isPremiumActive } from '../../lib/utils'
+import { errorMessage, formatPrice, isPremiumActive } from '../../lib/utils'
+import { HELD, type OrderStatus } from '../../lib/orders'
+import { StatusBadge } from '../orders/Orders'
 
-type Tab = 'stats' | 'vitrines' | 'premium' | 'categories'
+type Tab = 'stats' | 'orders' | 'vitrines' | 'premium' | 'categories'
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'stats', label: 'Tableau de bord', icon: 'chart' },
+  { id: 'orders', label: 'Commandes & séquestre', icon: 'shield' },
   { id: 'vitrines', label: 'Vitrines', icon: 'store' },
   { id: 'premium', label: 'Demandes Premium', icon: 'crown' },
   { id: 'categories', label: 'Catégories', icon: 'grid' },
@@ -34,6 +37,7 @@ export default function Admin() {
       </aside>
       <main className="admin-main stack">
         {tab === 'stats' && <Stats />}
+        {tab === 'orders' && <Escrow />}
         {tab === 'vitrines' && <Vitrines />}
         {tab === 'premium' && <Requests />}
         {tab === 'categories' && <Categories />}
@@ -205,6 +209,59 @@ function Categories() {
             }}><Icon name="trash" size={18} /></button>
           </div>
         ))}
+      </div>
+    </>
+  )
+}
+
+function Escrow() {
+  const list = useLoad(() => api.adminListOrders(), [])
+  const [f, setF] = useState<'check' | 'held' | 'dispute' | 'payout' | 'all'>('check')
+  const all = list.data ?? []
+  const sum = (xs: typeof all, k: 'subtotal' | 'seller_amount' | 'commission') => xs.reduce((a, o) => a + o[k], 0)
+  const held = all.filter((o) => HELD.includes(o.status))
+  const toCheck = all.filter((o) => o.status === 'payment_submitted')
+  const disputes = all.filter((o) => o.status === 'dispute')
+  const toPay = all.filter((o) => o.status === 'completed' && o.payout_status === 'pending')
+  const earned = all.filter((o) => o.status === 'completed')
+  const rows = f === 'check' ? toCheck : f === 'held' ? held : f === 'dispute' ? disputes : f === 'payout' ? toPay : all
+  const fcfa = (n: number) => formatPrice(n)
+  return (
+    <>
+      <h1>Commandes & séquestre</h1>
+      <p className="alert warn small">V1 : les paiements arrivent sur les numéros Mobile Money LinkApp et sont vérifiés à la main.
+        Faites valider le montage juridique avant d'encaisser de l'argent réel pour le compte des vendeurs.</p>
+      <div className="kpis">
+        <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="shield" size={16} />Argent bloqué</span><b>{fcfa(sum(held, 'subtotal'))}</b><span className="tiny muted">{held.length} commande(s)</span></div>
+        <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="search" size={16} />Paiements à vérifier</span><b>{toCheck.length}</b></div>
+        <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="users" size={16} />À reverser aux vendeurs</span><b>{fcfa(sum(toPay, 'seller_amount'))}</b><span className="tiny muted">{toPay.length} versement(s)</span></div>
+        <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="chart" size={16} />Commissions gagnées</span><b>{fcfa(sum(earned, 'commission'))}</b></div>
+        <div className="card kpi"><span className="row small muted" style={{ gap: 6 }}><Icon name="bell" size={16} />Litiges</span><b>{disputes.length}</b></div>
+      </div>
+      <div className="chips">
+        {([['check', `À vérifier (${toCheck.length})`], ['held', `Bloqués (${held.length})`], ['dispute', `Litiges (${disputes.length})`], ['payout', `À reverser (${toPay.length})`], ['all', 'Toutes']] as const).map(([k, l]) => (
+          <button key={k} className={'chip ' + (f === k ? 'on' : '')} onClick={() => setF(k)}>{l}</button>
+        ))}
+      </div>
+      <div className="card table-wrap">
+        {list.loading ? <div className="page"><Skeleton h={120} /></div> : (
+          <table>
+            <thead><tr><th>Commande</th><th>Client</th><th>Vendeur</th><th>Montant</th><th>Statut</th><th /></tr></thead>
+            <tbody>
+              {rows.map((o) => (
+                <tr key={o.id}>
+                  <td><b>{o.code}</b><br /><span className="tiny muted">{new Date(o.created_at).toLocaleDateString('fr-FR')} · {o.item_title}</span></td>
+                  <td className="small">{o.buyer_name}<br /><span className="tiny muted">{o.buyer_phone}</span></td>
+                  <td className="small">{o.vitrine?.name ?? '—'}</td>
+                  <td className="small"><b>{fcfa(o.subtotal)}</b><br /><span className="tiny muted">vendeur {fcfa(o.seller_amount)}</span></td>
+                  <td><StatusBadge s={o.status as OrderStatus} />{o.status === 'completed' && <><br /><span className="tiny muted">{o.payout_status === 'paid' ? 'versé' : 'à reverser'}</span></>}</td>
+                  <td><a className="btn soft sm" href={`#/commande/${o.id}`}>Ouvrir</a></td>
+                </tr>
+              ))}
+              {rows.length === 0 && <tr><td colSpan={6} className="center muted">Rien à traiter</td></tr>}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   )

@@ -72,6 +72,7 @@ export function Account() {
 
         <p className="small muted" style={{ fontWeight: 700, marginTop: 18 }}>PARAMÈTRES</p>
         <div className="card menu">
+          {profile && <a href="#/commandes"><span className="ic"><Icon name="box" size={18} /></span><span className="grow">Mes commandes</span><Icon name="chevron" className="muted" /></a>}
           <a href="#/favoris"><span className="ic"><Icon name="heart" size={18} /></span><span className="grow">Mes favoris</span><Icon name="chevron" className="muted" /></a>
           {profile && (
             <button onClick={() => { setF({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' }); setEdit(true) }}>

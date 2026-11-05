@@ -22,6 +22,7 @@ export function DesktopHeader() {
           <Link to="/" className={on('/')}>Accueil</Link>
           <Link to="/explorer" className={on('/explorer')}>Explorer</Link>
           <Link to="/favoris" className={on('/favoris')}>Favoris</Link>
+          {profile && <Link to="/commandes" className={on('/commande')}>Commandes</Link>}
           <Link to="/compte" className={on('/compte')}>{profile ? 'Mon compte' : 'Se connecter'}</Link>
         </nav>
         {vitrine

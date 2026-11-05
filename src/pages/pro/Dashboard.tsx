@@ -9,6 +9,8 @@ import { isPremiumActive } from '../../lib/utils'
 export default function Dashboard() {
   const { vitrine: v } = useSession()
   const items = useLoad(() => (v ? api.listItems(v.id) : Promise.resolve([])), [v?.id])
+  const orders = useLoad(() => (v ? api.sellerOrders() : Promise.resolve([])), [v?.id])
+  const todo = (orders.data ?? []).filter((o) => ['paid', 'preparing', 'shipped'].includes(o.status)).length
   if (!v) return null
 
   const t = TYPES[v.type]
@@ -54,6 +56,13 @@ export default function Dashboard() {
           <div className="card stat"><b>{v.views}</b><span>Visites</span></div>
           <div className="card stat"><b>{list.filter((i) => i.available).length}</b><span>Disponibles</span></div>
         </div>
+
+        <a className="card pad row" href="#/pro/commandes">
+          <span className="ic" style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--green-bg)', color: 'var(--green)' }}><Icon name="box" size={18} /></span>
+          <span className="grow"><b>Commandes reçues</b><br /><span className="tiny muted">{todo > 0 ? `${todo} à traiter` : 'Achats protégés de vos clients'}</span></span>
+          {todo > 0 && <span className="badge secure">{todo}</span>}
+          <Icon name="chevron" className="muted" />
+        </a>
 
         <a className="card pad row" href={`#/v/${v.slug}`}>
           <span className="ic" style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--blue-50)', color: 'var(--blue-600)' }}><Icon name="eye" size={18} /></span>

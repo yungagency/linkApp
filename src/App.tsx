@@ -9,6 +9,7 @@ import { useSession } from './lib/session'
 import { Account, BecomeSeller, Favorites } from './pages/Account'
 import { Login, Register } from './pages/Auth'
 import { Categories, CategoryPage } from './pages/Categories'
+import { Checkout, OrderDetail, OrderList } from './pages/orders/Orders'
 import Explore from './pages/Explore'
 import Home from './pages/Home'
 import VitrinePage from './pages/VitrinePage'
@@ -28,7 +29,7 @@ export default function App() {
   const { profile, vitrine, loading } = useSession()
   const base = path.split('?')[0]!
   const query = match(base, path) ?? {}
-  const needsAuth = base.startsWith('/pro') || base === '/admin'
+  const needsAuth = base.startsWith('/pro') || base === '/admin' || base.startsWith('/commande')
 
   let page: ReactNode
   let nav = true
@@ -48,9 +49,13 @@ export default function App() {
   else if (base === '/inscription') { page = <Register next={query.next} />; nav = false; narrow = true }
   else if (base === '/compte') { page = <Account />; narrow = true }
   else if (base === '/devenir-vendeur') { page = <BecomeSeller />; nav = false; narrow = true }
+  else if ((m = match('/commander/:slug/:item', base))) { page = <Checkout slug={m.slug!} itemId={m.item!} />; nav = false; narrow = true }
+  else if (base === '/commandes') { page = <OrderList mode="buyer" />; narrow = true }
+  else if ((m = match('/commande/:id', base))) { page = <OrderDetail id={m.id!} />; nav = false; narrow = true }
   else if (base === '/pro/vitrine') { page = <VitrineForm />; nav = false; narrow = true }
   else if (base.startsWith('/pro') && !vitrine) page = <Redirect to="/pro/vitrine" />
   else if (base === '/pro') page = <Dashboard />
+  else if (base === '/pro/commandes') { page = <OrderList mode="seller" />; narrow = true }
   else if ((m = match('/pro/article/:id', base))) { page = <ItemForm id={m.id!} />; nav = false; narrow = true }
   else if (base === '/pro/abonnement') { page = <Subscription />; nav = false; narrow = true }
   else if (base === '/admin') {

@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Api, Category, Item, ItemHit, PremiumRequest, Profile, Vitrine } from './types'
+import type { Api, Category, Item, ItemHit, Order, OrderEvent, PremiumRequest, Profile, Vitrine } from './types'
 import { compressImage, slugify, uid } from './utils'
+
+const ORDER_SELECT = '*, vitrine:vitrines(id,name,slug,type,phone,whatsapp)'
 
 export function createSupabaseApi(url: string, key: string): Api {
   const sb: SupabaseClient = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } })
@@ -121,6 +123,49 @@ export function createSupabaseApi(url: string, key: string): Api {
     async myPremiumRequests(vitrineId) {
       return must(await sb.from('premium_requests').select('*').eq('vitrine_id', vitrineId)
         .order('created_at', { ascending: false })) as PremiumRequest[]
+    },
+
+    // ---------- Achat protégé ----------
+    async createOrder(o) {
+      const r = await sb.rpc('create_order', {
+        p_item_id: o.item_id, p_quantity: o.quantity, p_buyer_name: o.buyer_name,
+        p_buyer_phone: o.buyer_phone, p_address: o.address, p_note: o.note,
+      })
+      return must(r) as Order
+    },
+    async myOrders() {
+      const id = await userId()
+      if (!id) return []
+      return must(await sb.from('orders').select(ORDER_SELECT).eq('buyer_id', id).order('created_at', { ascending: false })) as Order[]
+    },
+    async sellerOrders() {
+      const id = await userId()
+      if (!id) return []
+      const v = await sb.from('vitrines').select('id').eq('owner_id', id).maybeSingle()
+      if (!v.data) return []
+      return must(await sb.from('orders').select(ORDER_SELECT).eq('vitrine_id', v.data.id).order('created_at', { ascending: false })) as Order[]
+    },
+    async getOrder(oid) {
+      const id = await userId()
+      const o = must(await sb.from('orders').select(ORDER_SELECT).eq('id', oid).maybeSingle()) as Order | null
+      if (!o || !id) return null
+      const events = must(await sb.from('order_events').select('*').eq('order_id', oid).order('created_at')) as OrderEvent[]
+      const prof = await sb.from('profiles').select('role').eq('id', id).maybeSingle()
+      const owner = await sb.from('vitrines').select('owner_id').eq('id', o.vitrine_id).maybeSingle()
+      const role = prof.data?.role === 'admin' ? 'admin' : owner.data?.owner_id === id ? 'seller' : 'buyer'
+      return { order: o, events, role }
+    },
+    async moveOrder(oid, to, extra = {}) {
+      must(await sb.rpc('order_transition', {
+        p_order_id: oid, p_to: to, p_note: extra.note ?? '', p_payment_method: extra.payment_method ?? null,
+        p_payment_ref: extra.payment_ref ?? null, p_dispute_reason: extra.dispute_reason ?? null,
+      }))
+    },
+    async adminListOrders() {
+      return must(await sb.from('orders').select(ORDER_SELECT).order('created_at', { ascending: false }).limit(500)) as Order[]
+    },
+    async adminMarkPayout(oid) {
+      must(await sb.rpc('order_mark_payout', { p_order_id: oid }))
     },
 
     async adminStats() {

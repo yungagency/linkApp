@@ -17,6 +17,16 @@ Une seule structure de données « vitrine » sert les 3 profils : seuls les lib
 
 **Reporté en V2 :** paiement CinetPay intégré, notifications push, carte / géolocalisation, statistiques détaillées, publication sur les stores.
 
+## Achat protégé (type « Trade Assurance » d'Alibaba)
+
+Commande → paiement Mobile Money → **argent bloqué** → préparation → expédition → livraison → **confirmation du client** → versement au vendeur (moins la commission). Litige possible à tout moment avant la confirmation : l'argent reste bloqué et l'admin rembourse ou libère.
+
+- Chaque étape est contrôlée dans la base (`order_transition`) et inscrite dans un **historique** (qui, quand, quoi).
+- Le prix est recalculé côté serveur : le client ne peut pas le modifier.
+- **V1 : vérification manuelle** des paiements par l'admin (onglet *Commandes & séquestre*). V2 : agrégateur de paiement.
+- À fournir : numéros Mobile Money LinkApp (`APP.paymentNumbers`) ; taux de commission (5 % provisoire, `APP.commissionRate` et table `settings`).
+- ⚠️ Faire valider le montage juridique (encaissement pour le compte de tiers, réglementation CEMAC) avant d'encaisser de l'argent réel.
+
 ## Stack
 
 React + Vite (PWA installable) · Supabase (comptes, base PostgreSQL, photos) · Capacitor (Android / iOS à partir du même code) · Vercel.
@@ -34,7 +44,7 @@ Compte admin démo : `admin@demo.linkapp` / `admin123`.
 ## Brancher Supabase (pas à pas)
 
 1. **Créer le projet** : supabase.com → *New project* → nom `linkapp`, région la plus proche (Europe, ex. Frankfurt), mot de passe de base de données à conserver.
-2. **Créer les tables** : menu *SQL Editor* → *New query* → coller tout le fichier `supabase/migrations/0001_init.sql` → *Run*. Résultat attendu : « Success. No rows returned ».
+2. **Créer les tables** : menu *SQL Editor* → *New query* → coller tout le fichier `supabase/migrations/0001_init.sql` → *Run*. Résultat attendu : « Success. No rows returned ». Recommencer avec `supabase/migrations/0002_orders.sql` (achat protégé).
 3. **Récupérer les 2 clés** : *Project Settings → API* (ou *API Keys*)
    - **Project URL** → `VITE_SUPABASE_URL` (forme `https://xxxx.supabase.co`)
    - **Publishable key** (`sb_publishable_…`) ou, sur les anciens projets, **anon public** → `VITE_SUPABASE_ANON_KEY`

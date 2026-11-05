@@ -3,7 +3,9 @@
  * Toutes les données vivent dans le navigateur (localStorage) : idéal pour présenter
  * l'application au client sans serveur. Rien n'est partagé entre appareils.
  */
-import type { Api, Category, Item, Profile, PremiumRequest, Vitrine, VitrineType } from './types'
+import { APP } from '../config'
+import { canMove, type Actor } from './orders'
+import type { Api, Category, Item, Order, OrderEvent, Profile, PremiumRequest, Vitrine, VitrineType } from './types'
 import { compressImage, slugify, uid } from './utils'
 
 interface DemoUser extends Profile { email: string; password: string }
@@ -14,6 +16,8 @@ interface DB {
   vitrines: Vitrine[]
   items: Item[]
   requests: PremiumRequest[]
+  orders: Order[]
+  events: OrderEvent[]
 }
 
 const KEY = 'linkapp-demo-v2'
@@ -65,13 +69,17 @@ function seed(): DB {
     it('v-6', 'Maïs sec', 350, 'le kg', 'Sac de 50 kg disponible.'), it('v-6', 'Manioc', 15000, 'le sac'),
     it('v-6', 'Igname', 20000, 'le sac', '', false),
   ]
-  return { users, session: null, categories, vitrines, items, requests: [] }
+  return { users, session: null, categories, vitrines, items, requests: [], orders: [], events: [] }
 }
 
 function load(): DB {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw) as DB
+    if (raw) {
+      const d = JSON.parse(raw) as DB
+      d.orders ??= []; d.events ??= []
+      return d
+    }
   } catch { /* stockage indisponible : on repart du jeu de démo */ }
   return seed()
 }
@@ -94,6 +102,16 @@ export function createDemoApi(): Api {
   }
   const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(structuredClone(v)), 120))
   const visible = (v: Vitrine) => v.status === 'active'
+  const withVitrine = (o: Order): Order => {
+    const v = db.vitrines.find((x) => x.id === o.vitrine_id)
+    return { ...o, vitrine: v && { id: v.id, name: v.name, slug: v.slug, type: v.type, phone: v.phone, whatsapp: v.whatsapp } }
+  }
+  const roleFor = (o: Order, u: DemoUser): Actor | null => {
+    if (u.role === 'admin') return 'admin'
+    if (db.vitrines.find((x) => x.id === o.vitrine_id)?.owner_id === u.id) return 'seller'
+    if (o.buyer_id === u.id) return 'buyer'
+    return null
+  }
   const match = (t: string, ...fields: (string | null | undefined)[]) =>
     fields.some((f) => (f ?? '').toLowerCase().includes(t.toLowerCase()))
 
@@ -223,6 +241,79 @@ export function createDemoApi(): Api {
     },
     async myPremiumRequests(vitrineId) {
       return delay(db.requests.filter((r) => r.vitrine_id === vitrineId))
+    },
+
+    // ---------- Achat protégé ----------
+    async createOrder(o) {
+      const u = needMe()
+      const it = db.items.find((i) => i.id === o.item_id)
+      if (!it || !it.available) throw new Error('Article indisponible')
+      if (it.price == null) throw new Error("Cet article n'a pas de prix fixe : contactez le vendeur")
+      const v = db.vitrines.find((x) => x.id === it.vitrine_id && x.status === 'active')
+      if (!v) throw new Error('Vitrine indisponible')
+      if (v.owner_id === u.id) throw new Error('Vous ne pouvez pas commander dans votre propre vitrine')
+      if (!o.address.trim() || !o.buyer_phone.trim()) throw new Error('Adresse et téléphone de livraison obligatoires')
+      const q = Math.max(1, Math.min(999, Math.round(o.quantity)))
+      const subtotal = it.price * q
+      const commission = Math.round(subtotal * APP.commissionRate)
+      const order: Order = {
+        id: uid(), code: 'LK-' + uid().replace(/-/g, '').slice(0, 6).toUpperCase(), buyer_id: u.id, vitrine_id: v.id,
+        item_id: it.id, item_title: it.title, item_image: it.image_url, unit: it.unit, unit_price: it.price, quantity: q,
+        subtotal, commission_rate: APP.commissionRate, commission, seller_amount: subtotal - commission,
+        buyer_name: o.buyer_name, buyer_phone: o.buyer_phone, address: o.address, note: o.note,
+        status: 'pending_payment', payment_method: null, payment_ref: null, dispute_reason: null, delivered_at: null,
+        payout_status: 'none', created_at: now(), updated_at: now(),
+      }
+      db.orders.unshift(order)
+      db.events.push({ id: uid(), order_id: order.id, status: 'pending_payment', actor: 'buyer', note: 'Commande passée', created_at: now() })
+      save(); return delay(withVitrine(order))
+    },
+    async myOrders() {
+      const u = me()
+      return delay(u ? db.orders.filter((o) => o.buyer_id === u.id).map(withVitrine) : [])
+    },
+    async sellerOrders() {
+      const u = me()
+      const v = u && db.vitrines.find((x) => x.owner_id === u.id)
+      return delay(v ? db.orders.filter((o) => o.vitrine_id === v.id).map(withVitrine) : [])
+    },
+    async getOrder(id) {
+      const u = me()
+      const o = db.orders.find((x) => x.id === id)
+      if (!u || !o) return delay(null)
+      const role = roleFor(o, u)
+      if (!role) return delay(null)
+      return delay({ order: withVitrine(o), events: db.events.filter((e) => e.order_id === id), role })
+    },
+    async moveOrder(id, to, extra = {}) {
+      const u = needMe()
+      const o = db.orders.find((x) => x.id === id)
+      if (!o) throw new Error('Commande introuvable')
+      const role = roleFor(o, u)
+      if (!role || !canMove(o.status, to, role)) throw new Error('Étape non autorisée')
+      if (to === 'payment_submitted' && !extra.payment_ref?.trim()) throw new Error('Indiquez la référence de la transaction Mobile Money')
+      if (to === 'dispute' && !extra.dispute_reason?.trim()) throw new Error('Décrivez le problème')
+      o.status = to
+      if (extra.payment_method) o.payment_method = extra.payment_method
+      if (extra.payment_ref) o.payment_ref = extra.payment_ref
+      if (to === 'dispute') o.dispute_reason = extra.dispute_reason ?? ''
+      if (to === 'delivered') o.delivered_at = now()
+      if (to === 'completed') o.payout_status = 'pending'
+      o.updated_at = now()
+      db.events.push({ id: uid(), order_id: id, status: to, actor: role, note: extra.note || extra.dispute_reason || '', created_at: now() })
+      save()
+    },
+    async adminListOrders() {
+      needAdmin()
+      return delay(db.orders.map(withVitrine))
+    },
+    async adminMarkPayout(id) {
+      needAdmin()
+      const o = db.orders.find((x) => x.id === id)
+      if (!o || o.status !== 'completed' || o.payout_status !== 'pending') throw new Error('Versement impossible pour cette commande')
+      o.payout_status = 'paid'; o.updated_at = now()
+      db.events.push({ id: uid(), order_id: id, status: 'completed', actor: 'admin', note: 'Montant versé au vendeur', created_at: now() })
+      save()
     },
 
     async adminStats() {

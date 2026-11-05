@@ -615,3 +615,56 @@ h1 { font-weight: 700; } h2 { font-weight: 650; } h3 { font-weight: 600; }
   .shell { padding-bottom: calc(66px + 16px + env(safe-area-inset-bottom) + 24px); }
   .toast, .net-pill { bottom: calc(66px + 30px + env(safe-area-inset-bottom)); }
 }
+
+/* =====================================================================
+   ACHAT PROTÉGÉ — commandes, séquestre, suivi
+   ===================================================================== */
+.badge.secure { background: #E6F0FF; color: #1D4ED8; }
+.ok-text { color: var(--green); font-weight: 600; }
+.protect { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: #EEF5FF; border: 1px solid #D6E6FF; color: var(--ink-2); font-size: 13px; }
+.protect b { color: var(--blue-700); }
+.protect-ic { width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #1E8BFF, #0A3BF0); box-shadow: 0 8px 18px -8px rgba(10, 85, 245, .7); }
+.qty { display: flex; align-items: center; gap: 4px; background: var(--bg); border-radius: 12px; padding: 4px; }
+.qty button { width: 32px; height: 32px; border-radius: 9px; background: #fff; font-size: 18px; font-weight: 600; box-shadow: var(--shadow); }
+.qty b { min-width: 26px; text-align: center; }
+.pay-opt { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 12px; border-radius: 14px; border: 2px solid var(--line); background: #fff; }
+.pay-opt.on { border-color: var(--blue-500); background: var(--blue-50); }
+
+/* Frise de suivi */
+.stepper { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(6, 1fr); position: relative; }
+.stepper li { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; position: relative; color: var(--muted); }
+.stepper li::before { content: ''; position: absolute; top: 15px; right: 50%; width: 100%; height: 3px; background: var(--line); z-index: 0; }
+.stepper li:first-child::before { display: none; }
+.stepper li.done::before, .stepper li.now::before { background: linear-gradient(90deg, #1E8BFF, #0A55F5); }
+.stepper .dot { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 2px solid var(--line); }
+.stepper li.done .dot { background: linear-gradient(135deg, #1E8BFF, #0A3BF0); border-color: transparent; color: #fff; }
+.stepper li.now .dot { border-color: var(--blue-500); color: var(--blue-600); box-shadow: 0 0 0 5px rgba(59, 130, 246, .16); animation: step-pulse 1.8s ease-in-out infinite; }
+.stepper li.now { color: var(--ink); }
+.stepper .lbl { font-size: 10.5px; font-weight: 600; line-height: 1.2; }
+@keyframes step-pulse { 50% { box-shadow: 0 0 0 9px rgba(59, 130, 246, 0); } }
+
+/* Bloc argent (séquestre) */
+.escrow { display: flex; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 18px; color: #fff; background: linear-gradient(160deg, #1E293B, #0B1220); }
+.escrow.held { background: radial-gradient(100% 140% at 100% 0%, rgba(30, 139, 255, .55), transparent 60%), linear-gradient(160deg, #131C2E, #0B1220); }
+.escrow.released { background: radial-gradient(100% 140% at 100% 0%, rgba(34, 197, 94, .45), transparent 60%), linear-gradient(160deg, #10261A, #0B1220); }
+.escrow-ic { width: 48px; height: 48px; flex-shrink: 0; border-radius: 15px; display: grid; place-items: center; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); }
+.escrow.held .escrow-ic { animation: lock-glow 2.4s ease-in-out infinite; }
+@keyframes lock-glow { 50% { box-shadow: 0 0 0 6px rgba(30, 139, 255, .18), 0 0 26px rgba(30, 139, 255, .45); } }
+.action-box { border: 1.5px solid #D6E6FF; }
+.action-box .link { align-self: center; }
+
+/* Historique */
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li { display: flex; gap: 12px; position: relative; padding-bottom: 14px; }
+.timeline li::before { content: ''; position: absolute; left: 5px; top: 14px; bottom: 0; width: 2px; background: var(--line); }
+.timeline li:last-child::before { display: none; }
+.timeline .t-dot { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: var(--blue-500); flex-shrink: 0; box-shadow: 0 0 0 3px var(--blue-50); }
+.timeline li + li .t-dot { background: #CBD5E1; box-shadow: 0 0 0 3px #F1F5F9; }
+/* Téléphone : seule l'étape en cours est nommée, pour éviter les libellés qui se touchent */
+@media (max-width: 899px) {
+  .stepper .lbl { visibility: hidden; font-size: 10px; white-space: nowrap; }
+  .stepper li.now .lbl { visibility: visible; color: var(--blue-600); }
+  .stepper li:first-child.now .lbl { align-self: flex-start; }
+  .stepper li:last-child.now .lbl { align-self: flex-end; }
+}
+@media (min-width: 900px) { .stepper .lbl { font-size: 12px; } .stepper .dot { width: 36px; height: 36px; } .stepper li::before { top: 17px; } }

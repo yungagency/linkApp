@@ -60,6 +60,63 @@ export interface PremiumRequest {
   vitrine?: Pick<Vitrine, 'id' | 'name' | 'type' | 'phone'>
 }
 
+export type OrderStatus = import('./orders').OrderStatus
+
+export interface Order {
+  id: string
+  code: string
+  buyer_id: string
+  vitrine_id: string
+  item_id: string | null
+  item_title: string
+  item_image: string | null
+  unit: string
+  unit_price: number
+  quantity: number
+  subtotal: number
+  commission_rate: number
+  commission: number
+  seller_amount: number
+  buyer_name: string
+  buyer_phone: string
+  address: string
+  note: string
+  status: OrderStatus
+  payment_method: 'orange' | 'mtn' | null
+  payment_ref: string | null
+  dispute_reason: string | null
+  delivered_at: string | null
+  payout_status: 'none' | 'pending' | 'paid'
+  created_at: string
+  updated_at: string
+  vitrine?: Pick<Vitrine, 'id' | 'name' | 'slug' | 'type' | 'phone' | 'whatsapp'>
+}
+
+export interface OrderEvent {
+  id: string
+  order_id: string
+  status: OrderStatus
+  actor: 'buyer' | 'seller' | 'admin'
+  note: string
+  created_at: string
+}
+
+export interface NewOrder {
+  item_id: string
+  quantity: number
+  buyer_name: string
+  buyer_phone: string
+  address: string
+  note: string
+}
+
+export interface OrderMove {
+  note?: string
+  payment_method?: 'orange' | 'mtn'
+  payment_ref?: string
+  dispute_reason?: string
+}
+
 export interface VitrineQuery {
   type?: VitrineType
   categoryId?: string
@@ -106,6 +163,14 @@ export interface Api {
   uploadImage(file: File): Promise<string>
   requestPremium(vitrineId: string, plan: string, note: string): Promise<void>
   myPremiumRequests(vitrineId: string): Promise<PremiumRequest[]>
+  // Achat protégé
+  createOrder(o: NewOrder): Promise<Order>
+  myOrders(): Promise<Order[]>
+  sellerOrders(): Promise<Order[]>
+  getOrder(id: string): Promise<{ order: Order; events: OrderEvent[]; role: 'buyer' | 'seller' | 'admin' } | null>
+  moveOrder(id: string, to: OrderStatus, extra?: OrderMove): Promise<void>
+  adminListOrders(): Promise<Order[]>
+  adminMarkPayout(id: string): Promise<void>
   // Admin
   adminStats(): Promise<AdminStats>
   adminListVitrines(): Promise<Vitrine[]>

@@ -6,6 +6,14 @@ export const APP = {
   defaultCity: 'Bafoussam',
   // Numéro WhatsApp de l'équipe LinkApp pour l'activation Premium (À FOURNIR par Atipik Group)
   supportWhatsapp: '',
+  /**
+   * ACHAT PROTÉGÉ (séquestre)
+   * Numéros Mobile Money LinkApp sur lesquels le client paie (À FOURNIR par Atipik Group).
+   * ⚠️ Faire valider le montage juridique avant d'encaisser de l'argent réel pour le compte des vendeurs.
+   */
+  paymentNumbers: { orange: '', mtn: '' },
+  /** Commission LinkApp prélevée sur le montant versé au vendeur. 5 % = valeur provisoire, À DÉCIDER. */
+  commissionRate: 0.05,
 }
 
 export const TYPES: Record<VitrineType, {
